@@ -336,6 +336,8 @@ const PRESET_PROVIDERS = [
   { id: 'qwen', name: 'Alibaba Qwen', type: 'openai', baseUrl: 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1', models: ['qwen-plus', 'qwen-max'] },
   { id: 'siliconflow', name: 'SiliconFlow', type: 'openai', baseUrl: 'https://api.siliconflow.cn/v1', models: ['deepseek-ai/DeepSeek-V3'] },
   { id: 'together', name: 'Together AI', type: 'openai', baseUrl: 'https://api.together.xyz/v1', models: ['meta-llama/Llama-3.3-70B-Instruct-Turbo'] },
+  { id: 'nvidia', name: 'NVIDIA (NIM)', type: 'openai', baseUrl: 'https://integrate.api.nvidia.com/v1', models: ['meta/llama-3.3-70b-instruct'] },
+  { id: 'ollama-cloud', name: 'Ollama Cloud', type: 'openai', baseUrl: 'https://ollama.com/v1', models: [] },
   { id: 'perplexity', name: 'Perplexity', type: 'openai', baseUrl: 'https://api.perplexity.ai', models: ['sonar', 'sonar-pro'] },
   { id: 'ollama', name: 'Ollama (lokal)', type: 'openai', baseUrl: 'http://localhost:11434/v1', models: [], noKey: true },
   { id: 'lmstudio', name: 'LM Studio (lokal)', type: 'openai', baseUrl: 'http://localhost:1234/v1', models: [], noKey: true },
@@ -354,7 +356,10 @@ const DEFAULT_SETTINGS = {
   confirm: { run_js: true },
   search: { provider: 'tavily', tavilyKey: '', jinaKey: '', searxUrl: '' },
   proxy: 'https://r.jina.ai/{url}',
+  workerUrl: '',
 };
+// Anbieter, die Browser-Anfragen (CORS) blockieren können, und ihr Name im Cloudflare-Worker
+const PROXY_HOSTS = { 'integrate.api.nvidia.com': 'nvidia', 'ollama.com': 'ollama', 'api.deepseek.com': 'deepseek' };
 
 /* ===== Speicher (IndexedDB) ===== */
 const DB = {
@@ -403,7 +408,7 @@ async function loadAll() {
   if (!S.settings.sendKey) S.settings.sendKey = matchMedia('(pointer:coarse)').matches ? 'button' : 'enter';
   const provs = (await DB.get('kv', 'providers')) || [];
   for (const pr of PRESET_PROVIDERS) {
-    if (!provs.find(x => x.id === pr.id)) provs.push({ id: pr.id, name: pr.name, type: pr.type, baseUrl: pr.baseUrl, apiKey: '', enabled: false, models: pr.models.map(id => ({ id })), builtin: true, noKey: !!pr.noKey });
+    if (!provs.find(x => x.id === pr.id || x.baseUrl === pr.baseUrl)) provs.push({ id: pr.id, name: pr.name, type: pr.type, baseUrl: pr.baseUrl, apiKey: '', enabled: false, models: pr.models.map(id => ({ id })), builtin: true, noKey: !!pr.noKey });
   }
   S.providers = provs;
   let ags = await DB.get('kv', 'agents');
@@ -566,6 +571,25 @@ function errText(e) {
   return String((e && e.message) || e);
 }
 const safeJSON = s => { try { return s ? JSON.parse(s) : {}; } catch { return { _raw: s }; } };
+const hostOf = u => { try { return new URL(u).hostname; } catch { return ''; } };
+const proxyKeyOf = p => PROXY_HOSTS[hostOf(p.baseUrl)] || null;
+const canProxy = p => !!(proxyKeyOf(p) && (S.settings.workerUrl || '').trim());
+// Tatsächlich genutzte Adresse: direkt oder über den eigenen Worker
+function baseOf(p) {
+  if (p.proxy && canProxy(p)) {
+    const path = new URL(p.baseUrl).pathname.replace(/\/+$/, '');
+    return S.settings.workerUrl.trim().replace(/\/+$/, '') + '/' + proxyKeyOf(p) + path;
+  }
+  return p.baseUrl;
+}
+// Erst direkt versuchen; blockiert der Anbieter den Browser (Netzwerkfehler), automatisch über den Worker wiederholen
+async function withProxyFallback(p, fn) {
+  try { return await fn(p); }
+  catch (e) {
+    if (e instanceof TypeError && !p.proxy && canProxy(p)) { p.proxy = true; saveProviders(); return fn(p); }
+    throw e;
+  }
+}
 function joinUrl(base, path) { base = (base || '').trim(); if (base.endsWith('#')) return base.slice(0, -1); return base.replace(/\/+$/, '') + path; }
 
 async function sseRead(res, onData) {
@@ -618,7 +642,7 @@ function toOpenAI(system, msgs) {
   return out;
 }
 async function callOpenAI(o) {
-  const p = o.provider, url = joinUrl(p.baseUrl, '/chat/completions');
+  const p = o.provider, url = joinUrl(baseOf(p), '/chat/completions');
   const isOAI = /api\.openai\.com/.test(p.baseUrl);
   const body = { model: o.model, messages: toOpenAI(o.system, o.messages), stream: true };
   if (o.temperature != null && !(isOAI && /^(o\d|gpt-5)/.test(o.model))) body.temperature = o.temperature;
@@ -694,7 +718,7 @@ function toAnthropic(msgs) {
   return out;
 }
 async function callAnthropic(o) {
-  const p = o.provider, url = joinUrl(p.baseUrl.replace(/\/v1\/?$/, ''), '/v1/messages');
+  const p = o.provider, url = joinUrl(baseOf(p).replace(/\/v1\/?$/, ''), '/v1/messages');
   const body = { model: o.model, max_tokens: o.maxTokens || 8192, stream: true, messages: toAnthropic(o.messages) };
   if (o.system) body.system = o.system;
   if (o.temperature != null) body.temperature = o.temperature;
@@ -742,7 +766,7 @@ function toGemini(msgs) {
 }
 async function callGemini(o) {
   const p = o.provider;
-  const url = joinUrl(p.baseUrl, `/models/${encodeURIComponent(o.model)}:streamGenerateContent`) + '?alt=sse';
+  const url = joinUrl(baseOf(p), `/models/${encodeURIComponent(o.model)}:streamGenerateContent`) + '?alt=sse';
   const body = { contents: toGemini(o.messages) };
   if (o.system) body.systemInstruction = { parts: [{ text: o.system }] };
   const gc = {}; if (o.temperature != null) gc.temperature = o.temperature; if (o.maxTokens) gc.maxOutputTokens = o.maxTokens;
@@ -767,21 +791,22 @@ async function callGemini(o) {
 
 function callModel(o) {
   const fn = { openai: callOpenAI, anthropic: callAnthropic, gemini: callGemini }[o.provider.type] || callOpenAI;
-  return fn(o);
+  return withProxyFallback(o.provider, pv => fn({ ...o, provider: pv }));
 }
 
-async function listModels(p) {
+function listModels(p) { return withProxyFallback(p, listModelsRaw); }
+async function listModelsRaw(p) {
   if (p.type === 'anthropic') {
-    const r = await fetch(joinUrl(p.baseUrl.replace(/\/v1\/?$/, ''), '/v1/models?limit=1000'), { headers: { 'x-api-key': p.apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' } });
+    const r = await fetch(joinUrl(baseOf(p).replace(/\/v1\/?$/, ''), '/v1/models?limit=1000'), { headers: { 'x-api-key': p.apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' } });
     if (!r.ok) throw new ApiError(r.status, await r.text());
     return (await r.json()).data.map(x => x.id);
   }
   if (p.type === 'gemini') {
-    const r = await fetch(joinUrl(p.baseUrl, '/models?pageSize=1000'), { headers: { 'x-goog-api-key': p.apiKey } });
+    const r = await fetch(joinUrl(baseOf(p), '/models?pageSize=1000'), { headers: { 'x-goog-api-key': p.apiKey } });
     if (!r.ok) throw new ApiError(r.status, await r.text());
     return ((await r.json()).models || []).filter(m => (m.supportedGenerationMethods || []).includes('generateContent')).map(m => m.name.replace(/^models\//, ''));
   }
-  const r = await fetch(joinUrl(p.baseUrl, '/models'), { headers: p.apiKey ? { Authorization: 'Bearer ' + p.apiKey } : {} });
+  const r = await fetch(joinUrl(baseOf(p), '/models'), { headers: p.apiKey ? { Authorization: 'Bearer ' + p.apiKey } : {} });
   if (!r.ok) throw new ApiError(r.status, await r.text());
   const j = await r.json(); const arr = j.data || j.models || j;
   return arr.map(x => (typeof x === 'string' ? x : x.id || x.name)).filter(Boolean).sort();
@@ -797,6 +822,42 @@ async function testProvider(p) {
   } catch (e) { return { ok: false, msg: errText(e) }; }
   finally { clearTimeout(to); }
 }
+
+/* ===== Cloudflare-Worker (Weiterleitung gegen CORS-Sperren) ===== */
+const WORKER_CODE = `// Weiterleitung für KI-Anbieter, die Browser-Anfragen (CORS) blockieren.
+// Es werden nur die unten genannten Ziele erreicht. Der API-Schlüssel wird nur durchgereicht, nicht gespeichert.
+const TARGETS = {
+  nvidia: 'https://integrate.api.nvidia.com',
+  ollama: 'https://ollama.com',
+  deepseek: 'https://api.deepseek.com',
+};
+export default {
+  async fetch(req) {
+    const cors = {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+      'Access-Control-Allow-Headers': 'authorization,content-type',
+    };
+    if (req.method === 'OPTIONS') return new Response(null, { headers: cors });
+    const u = new URL(req.url);
+    const [, name, ...rest] = u.pathname.split('/');
+    const base = TARGETS[name];
+    if (!base) return new Response('Unbekanntes Ziel', { status: 404, headers: cors });
+    const r = await fetch(base + '/' + rest.join('/') + u.search, {
+      method: req.method,
+      headers: {
+        authorization: req.headers.get('authorization') || '',
+        'content-type': 'application/json',
+      },
+      body: req.method === 'GET' ? undefined : req.body,
+    });
+    return new Response(r.body, {
+      status: r.status,
+      headers: { ...cors, 'content-type': r.headers.get('content-type') || 'application/json' },
+    });
+  },
+};
+`;
 
 /* ===== Werkzeuge für Agenten (laufen im Browser) ===== */
 const MAX_TOOL_OUT = 12000;
@@ -1491,10 +1552,24 @@ function settingsProviders() {
         h('button', { class: 'btn', onclick: async e => { const b = e.currentTarget; b.disabled = true; status.className = 'status'; status.textContent = 'Prüfe …'; const r = await testProvider(p); b.disabled = false; status.className = 'status ' + (r.ok ? 'ok' : 'bad'); status.textContent = r.msg; } }, 'Verbindung prüfen'),
         h('button', { class: 'btn', onclick: () => loadModelsDialog(p, drawDetail) }, 'Modelle laden')),
       status,
+      workerBlock(p, drawDetail),
       h('div', { class: 'field' }, h('label', null, 'Modelle'), chips, add),
       p.builtin ? h('button', { class: 'btn sm', onclick: () => { const pr = PRESET_PROVIDERS.find(x => x.id === p.id); p.baseUrl = pr.baseUrl; p.type = pr.type; saveProviders(); drawDetail(); toast('Adresse zurückgesetzt'); } }, 'Adresse zurücksetzen') : h('button', { class: 'btn danger', onclick: async () => { if (await confirmDialog('Anbieter löschen?', '„' + p.name + '“ wird entfernt.', 'Löschen')) { S.providers = S.providers.filter(x => x.id !== p.id); S.provSel = null; await saveProviders(); render(); } } }, 'Anbieter löschen')].filter(Boolean));
   };
   drawList(); drawDetail(); wrap.append(listEl, detail); return wrap;
+}
+function workerBlock(p, redraw) {
+  const key = proxyKeyOf(p); if (!key) return null;
+  const st = S.settings, eff = baseOf(p);
+  const url = h('input', { class: 'inp', placeholder: 'https://dein-worker.deinkonto.workers.dev', value: st.workerUrl, oninput: e => { st.workerUrl = e.target.value.trim(); dSaveSettings(); } });
+  url.addEventListener('change', redraw);
+  return h('div', { class: 'field', style: { border: '1px solid var(--bd)', borderRadius: '.8rem', padding: '.8rem' } },
+    h('b', null, 'Falls dieser Anbieter „CORS“ meldet'),
+    h('p', { class: 'dim sm' }, 'Manche Anbieter blockieren Anfragen direkt aus dem Browser. Dann hilft ein eigener, kostenloser Cloudflare-Worker. Die Adresse trägst du nur einmal ein, sie gilt für alle betroffenen Anbieter. Die App wechselt bei einem Netzwerkfehler automatisch auf den Worker.'),
+    h('label', { class: 'dim sm' }, 'Worker-Adresse (einmalig)'), url,
+    h('div', { class: 'srow' }, h('div', { class: 'sl-l' }, 'Für diesen Anbieter immer über den Worker'), h('div', { class: 'sl-c' }, sw(!!p.proxy, v => { p.proxy = v; saveProviders(); redraw(); }))),
+    h('div', { class: 'dim sm' }, 'Genutzte Adresse: ', h('code', null, p.proxy && !canProxy(p) ? '⚠ Worker-Adresse fehlt' : eff)),
+    h('button', { class: 'btn sm', style: { marginTop: '.6rem' }, onclick: () => openModal({ title: 'Worker-Code', wide: true, body: h('div', null, h('p', { class: 'dim sm' }, 'Cloudflare → Workers & Pages → Create → Worker → Deploy → Edit code: alles ersetzen, einfügen, Deploy. Die entstandene Adresse oben eintragen.'), h('pre', { class: 'pre', style: { maxHeight: '45dvh' } }, WORKER_CODE)), buttons: [{ label: 'Schließen' }, { label: 'Code kopieren', primary: true, onClick: () => { copyText(WORKER_CODE); return false; } }] }) }, 'Worker-Code anzeigen / kopieren'));
 }
 function addCustomProvider() {
   const name = h('input', { class: 'inp', placeholder: 'z. B. Mein Server' }), url = h('input', { class: 'inp', placeholder: 'https://…/v1' });
