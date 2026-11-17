@@ -1,0 +1,1632 @@
+<!doctype html>
+<html lang="de" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
+<meta name="theme-color" content="#ffffff">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="KI-Studio">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Mein KI-Studio</title>
+<style>
+*{box-sizing:border-box;scrollbar-width:thin}
+:root{--accent:#00b96b;--fs:16px;--chat-fs:16px;--code-fs:13px;--lh:1.6;--ff:system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif;--content-w:820px;--rail-h:3.5rem}
+:root[data-theme=light]{color-scheme:light;--bg:#fff;--bg2:#f5f6f7;--bg3:#e9ebee;--panel:#f7f7f8;--rail:#eceef1;--bd:#e3e5e9;--tx:#1f2329;--tx2:#626870;--tx3:#9aa0a6;--user:#e6f6ee;--code-bg:#f4f5f7;--danger:#e5484d;--shadow:0 8px 30px rgba(0,0,0,.16)}
+:root[data-theme=dark]{color-scheme:dark;--bg:#1b1c1e;--bg2:#242528;--bg3:#2e3034;--panel:#202124;--rail:#151617;--bd:#35373b;--tx:#e8eaed;--tx2:#a1a5ad;--tx3:#6f7379;--user:#18382a;--code-bg:#141516;--danger:#ff6b70;--shadow:0 8px 30px rgba(0,0,0,.55)}
+html{font-size:var(--fs);-webkit-text-size-adjust:100%}
+html,body{margin:0;height:100%}
+body{font-family:var(--ff);background:var(--bg);color:var(--tx);overflow:hidden;font-size:1rem;line-height:1.4;-webkit-tap-highlight-color:transparent}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+h1,h2,h3,h4{margin:0}
+.dim{color:var(--tx2)}.sm{font-size:.82rem}.pad{padding:.8rem}
+.ic{display:inline-grid;place-items:center;line-height:0}
+.sp{flex:1}
+#app{display:flex;height:100dvh;width:100%;position:relative;overflow:hidden}
+
+/* Rail */
+.rail{width:3.6rem;background:var(--rail);border-right:1px solid var(--bd);display:flex;flex-direction:column;align-items:center;padding:.7rem 0;gap:.35rem;flex:none}
+.rail .logo{width:2.2rem;height:2.2rem;border-radius:.7rem;background:var(--accent);color:#fff;display:grid;place-items:center;font-size:1.1rem;margin-bottom:.6rem}
+.rail button{width:2.7rem;height:2.7rem;border-radius:.75rem;border:0;background:transparent;color:var(--tx2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.1rem}
+.rail button:hover{background:var(--bg3)}
+.rail button.active{background:var(--bg);color:var(--accent);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.rail .rl{display:none;font-size:.62rem;line-height:1}
+
+/* Panel */
+.panel{width:17.5rem;flex:none;background:var(--panel);border-right:1px solid var(--bd);display:flex;flex-direction:column;min-height:0}
+.ph{display:flex;align-items:center;justify-content:space-between;padding:.8rem .9rem .4rem}
+.ps{padding:.3rem .8rem .6rem}
+.plist{flex:1;overflow-y:auto;padding:0 .5rem .8rem}
+.citem{display:flex;align-items:center;gap:.55rem;padding:.55rem .6rem;border-radius:.7rem;cursor:pointer;margin-bottom:.1rem}
+.citem:hover{background:var(--bg3)}
+.citem.active{background:var(--bg);box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.ce{font-size:1.15rem;flex:none}
+.ct{flex:1;min-width:0}
+.cname{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:.92rem}
+.cmeta{font-size:.72rem;color:var(--tx3)}
+.scrim{position:absolute;inset:0;background:rgba(0,0,0,.38);z-index:29}
+
+/* Main / Header */
+.main{flex:1;min-width:0;display:flex;flex-direction:column;min-height:0}
+.chead{display:flex;align-items:center;gap:.5rem;padding:.55rem .8rem;border-bottom:1px solid var(--bd);min-height:3.3rem}
+.chip{display:inline-flex;align-items:center;gap:.4rem;border:1px solid var(--bd);background:var(--bg);border-radius:2rem;padding:.3rem .75rem;max-width:48vw;font-size:.88rem}
+.chip:hover{background:var(--bg2)}
+.chip .cl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip .dim{font-size:.75rem}
+.ib{width:2.1rem;height:2.1rem;border:0;background:transparent;border-radius:.55rem;display:inline-grid;place-items:center;color:var(--tx2);flex:none}
+.ib:hover{background:var(--bg3);color:var(--tx)}
+.ib.sm{width:1.7rem;height:1.7rem}
+.mob{display:none}
+
+/* Messages */
+.msgs{flex:1;overflow-y:auto;padding:.4rem 1rem 1rem;overscroll-behavior:contain}
+.msgs-in{max-width:var(--content-w);margin:0 auto}
+.turn{display:flex;gap:.7rem;margin:1.25rem 0}
+.av{width:2.1rem;height:2.1rem;flex:none;border-radius:50%;display:grid;place-items:center;background:var(--bg3);font-size:1rem}
+.turn.user .av{background:var(--accent);color:#fff;font-size:.78rem;font-weight:700}
+.tb{flex:1;min-width:0}
+.tn{font-size:.8rem;color:var(--tx2);margin-bottom:.3rem;display:flex;gap:.5rem;flex-wrap:wrap;align-items:baseline}
+.tn b{color:var(--tx);font-weight:600;font-size:.88rem}
+.txt{font-size:var(--chat-fs);line-height:var(--lh);overflow-wrap:anywhere;word-break:break-word}
+.turn.user .utx{white-space:pre-wrap;background:var(--user);padding:.6rem .85rem;border-radius:.9rem;display:inline-block;max-width:100%}
+.atts{display:flex;flex-wrap:wrap;gap:.4rem;margin:.2rem 0 .4rem}
+.att img{max-height:9rem;max-width:12rem;border-radius:.6rem;border:1px solid var(--bd);display:block}
+.att.file{background:var(--bg2);border:1px solid var(--bd);border-radius:.5rem;padding:.2rem .55rem;font-size:.8rem}
+.style-bubble .turn.user{flex-direction:row-reverse}
+.style-bubble .turn.user .av{display:none}
+.style-bubble .turn.user .tb{display:flex;flex-direction:column;align-items:flex-end}
+.style-bubble .turn.user .tn{display:none}
+.style-bubble .turn.ai .part{background:var(--bg2);padding:.45rem .9rem;border-radius:.9rem;margin:.35rem 0}
+.acts{display:flex;gap:.1rem;margin-top:.25rem;opacity:.55}
+.turn:hover .acts{opacity:1}
+.part.live .txt:empty::after{content:"●●●";letter-spacing:.2em;color:var(--tx3);animation:blink 1s infinite;font-size:.7em}
+@keyframes blink{50%{opacity:.25}}
+.think{border-left:3px solid var(--bd);margin:.3rem 0 .6rem;padding:.1rem .75rem;color:var(--tx2);font-size:.9em}
+.think summary{cursor:pointer;font-size:.85rem}
+.think-body{white-space:pre-wrap;margin-top:.3rem;line-height:1.5}
+.tool{border:1px solid var(--bd);border-radius:.65rem;margin:.45rem 0;background:var(--bg2);font-size:.86rem}
+.tool summary{padding:.45rem .7rem;cursor:pointer;display:flex;gap:.5rem;align-items:center}
+.tool .tbody{padding:0 .7rem .6rem}
+.tool .lbl{font-size:.72rem;color:var(--tx3);margin:.4rem 0 .1rem}
+.pre{white-space:pre-wrap;word-break:break-word;background:var(--code-bg);border-radius:.5rem;padding:.5rem .6rem;margin:0;font-family:ui-monospace,Consolas,monospace;font-size:.8rem;max-height:14rem;overflow:auto}
+.spin{width:.85rem;height:.85rem;border:2px solid var(--bd);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+.err{background:color-mix(in srgb,var(--danger) 12%,transparent);color:var(--danger);border-radius:.6rem;padding:.55rem .75rem;margin:.4rem 0;font-size:.9rem;white-space:pre-wrap}
+.note{color:var(--tx3);font-size:.8rem;margin:.3rem 0}
+
+/* Markdown */
+.txt>*:first-child{margin-top:0}.txt>*:last-child{margin-bottom:0}
+.txt p{margin:.55em 0}
+.txt h1,.txt h2,.txt h3,.txt h4{margin:1em 0 .4em;line-height:1.3}
+.txt h1{font-size:1.4em}.txt h2{font-size:1.25em}.txt h3{font-size:1.1em}.txt h4,.txt h5,.txt h6{font-size:1em}
+.txt ul,.txt ol{margin:.4em 0;padding-left:1.5em}.txt li{margin:.15em 0}
+.txt a{color:var(--accent)}
+.txt blockquote{margin:.6em 0;padding:.1em .9em;border-left:3px solid var(--accent);color:var(--tx2)}
+.txt hr{border:0;border-top:1px solid var(--bd);margin:1em 0}
+.txt code{font-family:ui-monospace,"Cascadia Code",Consolas,monospace;font-size:.88em;background:var(--code-bg);padding:.1em .35em;border-radius:.3rem}
+.code{margin:.7em 0;border:1px solid var(--bd);border-radius:.7rem;overflow:hidden;background:var(--code-bg)}
+.code-h{display:flex;align-items:center;justify-content:space-between;gap:.5rem;padding:.3rem .5rem .3rem .75rem;font-size:.75rem;color:var(--tx2);border-bottom:1px solid var(--bd)}
+.code-h button{border:0;background:transparent;color:var(--tx2);padding:.2rem .5rem;border-radius:.4rem;font-size:.75rem}
+.code-h button:hover{background:var(--bg3);color:var(--tx)}
+.code pre{margin:0;padding:.7rem .85rem;overflow-x:auto}
+.code pre code{background:none;padding:0;font-size:var(--code-fs);line-height:1.5;white-space:pre}
+.tbl{overflow-x:auto;margin:.6em 0}
+.txt table{border-collapse:collapse;font-size:.92em}
+.txt th,.txt td{border:1px solid var(--bd);padding:.35em .7em}
+.txt th{background:var(--bg2)}
+
+/* Empty */
+.empty{text-align:center;padding:12vh 1rem 2rem;color:var(--tx2)}
+.empty .big{font-size:3rem}
+.empty h2{color:var(--tx);margin:.4rem 0}
+.banner{margin:1.2rem auto 0;max-width:26rem;background:var(--bg2);border:1px solid var(--bd);border-radius:.8rem;padding:.9rem}
+.banner p{margin:0 0 .6rem}
+
+/* Composer */
+.composer{padding:.3rem 1rem .8rem}
+.cin{max-width:var(--content-w);margin:0 auto}
+.cbox{border:1px solid var(--bd);border-radius:1.1rem;background:var(--bg);padding:.5rem .6rem .4rem;box-shadow:0 1px 6px rgba(0,0,0,.06)}
+.cbox:focus-within{border-color:var(--accent)}
+.cbox textarea{width:100%;border:0;outline:0;resize:none;background:transparent;font-size:var(--chat-fs);line-height:1.45;max-height:35vh;padding:.2rem .25rem;display:block}
+.ctools{display:flex;align-items:center;gap:.2rem;margin-top:.2rem}
+.send{width:2.3rem;height:2.3rem;border-radius:50%;border:0;background:var(--accent);color:#fff;display:grid;place-items:center}
+.send.stop{background:var(--tx2)}
+.pend{display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:.3rem}
+.pend:empty{display:none}
+.pchip{position:relative;display:flex;align-items:center;gap:.4rem;background:var(--bg2);border:1px solid var(--bd);border-radius:.6rem;padding:.2rem .3rem .2rem .5rem;font-size:.8rem;max-width:12rem}
+.pchip img{height:2.4rem;border-radius:.4rem}
+.pchip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* Buttons / forms */
+.btn{border:1px solid var(--bd);background:var(--bg);border-radius:.65rem;padding:.5rem .9rem;font-size:.92rem}
+.btn:hover{background:var(--bg2)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn.danger{color:var(--danger);border-color:color-mix(in srgb,var(--danger) 40%,var(--bd))}
+.btn.full{width:100%}
+.btn.sm{padding:.25rem .6rem;font-size:.82rem}
+.inp{width:100%;padding:.55rem .7rem;border:1px solid var(--bd);border-radius:.6rem;background:var(--bg);font-size:.95rem;outline:0}
+.inp:focus{border-color:var(--accent)}
+textarea.inp{resize:vertical;min-height:7rem;line-height:1.45}
+.field{margin:.9rem 0}
+.field>label{display:block;font-size:.82rem;color:var(--tx2);margin-bottom:.3rem}
+.row{display:flex;gap:.5rem;align-items:center}
+.sw{position:relative;display:inline-block;width:2.4rem;height:1.4rem;flex:none}
+.sw input{opacity:0;width:0;height:0;position:absolute}
+.sw .sl{position:absolute;inset:0;background:var(--bg3);border-radius:1rem;transition:.15s;cursor:pointer}
+.sw .sl::after{content:"";position:absolute;left:.15rem;top:.15rem;width:1.1rem;height:1.1rem;border-radius:50%;background:#fff;transition:.15s;box-shadow:0 1px 2px rgba(0,0,0,.3)}
+.sw input:checked+.sl{background:var(--accent)}
+.sw input:checked+.sl::after{transform:translateX(1rem)}
+.sw.sm{width:2rem;height:1.2rem}.sw.sm .sl::after{width:.9rem;height:.9rem}.sw.sm input:checked+.sl::after{transform:translateX(.8rem)}
+.seg{display:inline-flex;border:1px solid var(--bd);border-radius:.65rem;overflow:hidden}
+.seg button{border:0;background:transparent;padding:.4rem .75rem;font-size:.88rem}
+.seg button.on{background:var(--accent);color:#fff}
+
+/* Modal */
+.mback{position:fixed;inset:0;background:rgba(0,0,0,.42);z-index:100;display:grid;place-items:center;padding:1rem}
+.modal{background:var(--bg);border-radius:1rem;width:min(30rem,100%);max-height:88dvh;display:flex;flex-direction:column;box-shadow:var(--shadow)}
+.modal.wide{width:min(46rem,100%)}
+.mh{display:flex;align-items:center;justify-content:space-between;padding:.7rem .8rem .5rem 1.1rem}
+.mb{padding:0 1.1rem .6rem;overflow-y:auto;flex:1}
+.mf{display:flex;justify-content:flex-end;gap:.5rem;padding:.7rem 1.1rem 1rem}
+.mlist{margin-top:.6rem;max-height:52dvh;overflow-y:auto}
+.mgroup{font-size:.75rem;color:var(--tx3);margin:.7rem 0 .2rem;text-transform:uppercase;letter-spacing:.04em}
+.mrow{display:flex;align-items:center;gap:.5rem;padding:.5rem .6rem;border-radius:.55rem;cursor:pointer;font-size:.92rem;overflow-wrap:anywhere}
+.mrow:hover{background:var(--bg2)}
+.mrow.on{background:color-mix(in srgb,var(--accent) 14%,transparent)}
+.cb{width:1.2rem;height:1.2rem;border:1.5px solid var(--bd);border-radius:.3rem;display:inline-grid;place-items:center;font-size:.8rem;flex:none;color:var(--accent)}
+.toast{position:fixed;left:50%;bottom:5.2rem;transform:translateX(-50%);background:#222;color:#fff;padding:.55rem 1rem;border-radius:2rem;z-index:200;font-size:.9rem;max-width:90vw;box-shadow:var(--shadow)}
+.preview-frame{width:100%;height:60dvh;border:1px solid var(--bd);border-radius:.6rem;background:#fff}
+
+/* Pages (settings/agents/compare) */
+.page{flex:1;overflow-y:auto;min-height:0}
+.page-in{max-width:60rem;margin:0 auto;padding:1rem 1.2rem 3rem}
+.page h2{font-size:1.3rem;margin:.2rem 0 .8rem}
+.tabs{display:flex;gap:.3rem;overflow-x:auto;border-bottom:1px solid var(--bd);margin-bottom:1rem;padding-bottom:.4rem}
+.tabs button{border:0;background:transparent;padding:.45rem .85rem;border-radius:.6rem;color:var(--tx2);white-space:nowrap}
+.tabs button.on{background:var(--bg3);color:var(--tx);font-weight:600}
+.srow{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.8rem 0;border-bottom:1px solid var(--bd)}
+.sl-l{flex:1;min-width:0}.sl-c{flex:none;max-width:60%}
+.rng{display:flex;align-items:center;gap:.6rem;min-width:11rem}
+.rng input{flex:1}
+input[type=range]{-webkit-appearance:none;appearance:none;height:.4rem;border-radius:1rem;background:var(--bg3);outline:0;margin:.6rem 0;color:var(--tx)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:1.25rem;height:1.25rem;border-radius:50%;background:var(--accent);border:2px solid var(--bg);box-shadow:0 0 0 1px var(--accent)}
+input[type=range]::-moz-range-thumb{width:1.1rem;height:1.1rem;border-radius:50%;background:var(--accent);border:2px solid var(--bg)}
+input[type=range]:disabled{opacity:.45}
+input[type=color]{width:2rem;height:2rem;padding:0;border:0;background:none;border-radius:50%;cursor:pointer}
+.rv{min-width:3rem;text-align:right;color:var(--tx2);font-size:.85rem}
+.sample{border:1px dashed var(--bd);border-radius:.8rem;padding:.8rem 1rem;margin:.8rem 0;font-size:var(--chat-fs);line-height:var(--lh)}
+.sample code{font-family:ui-monospace,Consolas,monospace;font-size:var(--code-fs);background:var(--code-bg);padding:.1em .4em;border-radius:.3rem}
+.swatches{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center}
+.swatch{width:1.7rem;height:1.7rem;border-radius:50%;border:2px solid transparent;padding:0}
+.swatch.on{border-color:var(--tx)}
+.prov{display:flex;gap:1rem;align-items:flex-start}
+.prov-list{width:15rem;flex:none;display:flex;flex-direction:column;gap:.2rem}
+.prow{display:flex;align-items:center;gap:.5rem;padding:.55rem .6rem;border-radius:.65rem;cursor:pointer;border:1px solid transparent}
+.prow:hover{background:var(--bg2)}
+.prow.active{background:var(--bg2);border-color:var(--bd)}
+.pname{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.92rem}
+.pdot{width:.5rem;height:.5rem;border-radius:50%;background:var(--bg3);flex:none}.pdot.on{background:var(--accent)}
+.prov-detail{flex:1;min-width:0}
+.mchips{display:flex;flex-wrap:wrap;gap:.4rem;margin:.4rem 0}
+.mchip{display:inline-flex;align-items:center;gap:.3rem;background:var(--bg2);border:1px solid var(--bd);border-radius:.5rem;padding:.2rem .3rem .2rem .6rem;font-size:.82rem}
+.mchip button{border:0;background:transparent;color:var(--tx3);padding:0 .25rem}
+.status{font-size:.85rem;margin-top:.4rem;white-space:pre-wrap}.status.ok{color:var(--accent)}.status.bad{color:var(--danger)}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(16rem,1fr));gap:.8rem}
+.card{border:1px solid var(--bd);border-radius:.9rem;padding:.9rem;background:var(--bg);display:flex;flex-direction:column;gap:.4rem}
+.card .em{font-size:1.8rem}
+.card .desc{color:var(--tx2);font-size:.85rem;flex:1;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.badges{display:flex;flex-wrap:wrap;gap:.25rem}
+.badge{background:var(--bg3);border-radius:.4rem;padding:.05rem .45rem;font-size:.7rem;color:var(--tx2)}
+.checks{display:grid;grid-template-columns:repeat(auto-fill,minmax(13rem,1fr));gap:.3rem}
+.checks label{display:flex;gap:.5rem;align-items:center;font-size:.88rem;padding:.2rem 0}
+.cmp{display:grid;grid-template-columns:repeat(auto-fit,minmax(17rem,1fr));gap:.8rem;margin-top:1rem}
+.col{border:1px solid var(--bd);border-radius:.9rem;display:flex;flex-direction:column;min-width:0;background:var(--bg)}
+.col-h{padding:.55rem .8rem;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;gap:.5rem;font-size:.88rem}
+.col-h b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.col-b{padding:.2rem .85rem;min-height:6rem}
+.col-f .btn{color:var(--tx)}
+.col-f{padding:.4rem .8rem;border-top:1px solid var(--bd);font-size:.75rem;color:var(--tx3);display:flex;justify-content:space-between;align-items:center}
+
+/* Mobile */
+@media (max-width:820px){
+  #app{flex-direction:column-reverse}
+  .rail{width:100%;height:var(--rail-h);flex-direction:row;justify-content:space-around;padding:0 .4rem env(safe-area-inset-bottom);border-right:0;border-top:1px solid var(--bd);gap:0}
+  .rail .logo,.rail .sp{display:none}
+  .rail button{width:4.5rem;height:3rem}
+  .rail .rl{display:block}
+  body.kb .rail{display:none}
+  .panel{position:absolute;left:0;top:0;bottom:var(--rail-h);width:min(20rem,86vw);z-index:30;transform:translateX(-104%);transition:transform .2s;box-shadow:var(--shadow)}
+  .panel.open{transform:none}
+  .mob{display:inline-grid}
+  .msgs{padding:.2rem .75rem 1rem}
+  .composer{padding:.2rem .6rem .5rem}
+  .turn{gap:.5rem}
+  .av{width:1.8rem;height:1.8rem;font-size:.9rem}
+  .prov{flex-direction:column}
+  .prov-list{width:100%;flex-direction:row;overflow-x:auto;padding-bottom:.3rem}
+  .prow{flex:none}
+  .srow{flex-direction:column;align-items:stretch;gap:.5rem}
+  .sl-c{max-width:100%}
+  .toast{bottom:5.5rem}
+  .page-in{padding:.8rem .8rem 3rem}
+  .chead{gap:.3rem;padding:.5rem .5rem}
+  .chip{max-width:38vw;min-width:0;padding:.3rem .6rem}
+  .chip .dim{display:none}
+}
+
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+'use strict';
+/* ===== Mein KI-Studio – privater KI-Client (eine Datei, alles lokal) ===== */
+const VERSION = '1.0.0';
+const $ = (s, r = document) => r.querySelector(s);
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
+const isPlain = o => o && typeof o === 'object' && !Array.isArray(o);
+function deepMerge(base, over) {
+  for (const k of Object.keys(over || {})) {
+    if (isPlain(base[k]) && isPlain(over[k])) deepMerge(base[k], over[k]); else base[k] = over[k];
+  }
+  return base;
+}
+function h(tag, attrs, ...kids) {
+  const el = document.createElement(tag);
+  if (attrs) for (const [k, v] of Object.entries(attrs)) {
+    if (v == null || v === false) continue;
+    if (k === 'class') el.className = v;
+    else if (k === 'html') el.innerHTML = v;
+    else if (k === 'value') el.value = v;
+    else if (k === 'checked') el.checked = !!v;
+    else if (k === 'disabled') el.disabled = !!v;
+    else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
+    else if (k === 'style' && typeof v === 'object') Object.assign(el.style, v);
+    else el.setAttribute(k, v === true ? '' : v);
+  }
+  for (const kid of kids.flat(Infinity)) {
+    if (kid == null || kid === false) continue;
+    el.append(kid.nodeType ? kid : document.createTextNode(String(kid)));
+  }
+  return el;
+}
+const ICONS = {
+  chat: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+  compare: '<rect x="3" y="3" width="7" height="18" rx="1.5"/><rect x="14" y="3" width="7" height="18" rx="1.5"/>',
+  bot: '<rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 8V4"/><circle cx="12" cy="3" r="1"/><path d="M9 14h.01M15 14h.01"/>',
+  settings: '<path d="M4 6h8M16 6h4M4 12h2M10 12h10M4 18h10M18 18h2"/><circle cx="14" cy="6" r="2"/><circle cx="8" cy="12" r="2"/><circle cx="16" cy="18" r="2"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  send: '<path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4z"/>',
+  stop: '<rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/>',
+  clip: '<path d="M21.4 11l-9.2 9.2a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5"/>',
+  copy: '<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
+  refresh: '<path d="M23 4v6h-6"/><path d="M20.5 15a9 9 0 1 1-2.1-9.4L23 10"/>',
+  trash: '<path d="M3 6h18"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>',
+  edit: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>',
+  menu: '<path d="M3 6h18M3 12h18M3 18h18"/>',
+  chev: '<path d="M6 9l6 6 6-6"/>',
+  x: '<path d="M18 6L6 18M6 6l12 12"/>',
+  check: '<path d="M20 6L9 17l-5-5"/>',
+  dots: '<circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/>',
+  tool: '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.8-3.8a6 6 0 0 1-7.9 7.9l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9a6 6 0 0 1 7.9-7.9z"/>',
+  eye: '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/>',
+};
+const icon = (n, s = 18) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONS[n] || ''}</svg>`;
+const ic = (n, s) => h('span', { class: 'ic', html: icon(n, s) });
+
+/* ===== Voreinstellungen ===== */
+const PRESET_PROVIDERS = [
+  { id: 'openai', name: 'OpenAI', type: 'openai', baseUrl: 'https://api.openai.com/v1', models: ['gpt-5', 'gpt-5-mini', 'gpt-4.1', 'gpt-4o'] },
+  { id: 'anthropic', name: 'Anthropic (Claude)', type: 'anthropic', baseUrl: 'https://api.anthropic.com', models: ['claude-sonnet-5-5', 'claude-opus-5-5', 'claude-haiku-5-5'] },
+  { id: 'gemini', name: 'Google Gemini', type: 'gemini', baseUrl: 'https://generativelanguage.googleapis.com/v1beta', models: ['gemini-2.5-pro', 'gemini-2.5-flash'] },
+  { id: 'deepseek', name: 'DeepSeek', type: 'openai', baseUrl: 'https://api.deepseek.com', models: ['deepseek-chat', 'deepseek-reasoner'] },
+  { id: 'openrouter', name: 'OpenRouter', type: 'openai', baseUrl: 'https://openrouter.ai/api/v1', models: ['openai/gpt-4o-mini', 'google/gemini-2.5-flash', 'deepseek/deepseek-chat'] },
+  { id: 'groq', name: 'Groq', type: 'openai', baseUrl: 'https://api.groq.com/openai/v1', models: ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'] },
+  { id: 'mistral', name: 'Mistral', type: 'openai', baseUrl: 'https://api.mistral.ai/v1', models: ['mistral-large-latest', 'mistral-small-latest'] },
+  { id: 'xai', name: 'xAI (Grok)', type: 'openai', baseUrl: 'https://api.x.ai/v1', models: ['grok-4', 'grok-3-mini'] },
+  { id: 'moonshot', name: 'Moonshot (Kimi)', type: 'openai', baseUrl: 'https://api.moonshot.ai/v1', models: ['kimi-k2-0905-preview'] },
+  { id: 'zhipu', name: 'Zhipu (GLM)', type: 'openai', baseUrl: 'https://open.bigmodel.cn/api/paas/v4', models: ['glm-4.6'] },
+  { id: 'qwen', name: 'Alibaba Qwen', type: 'openai', baseUrl: 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1', models: ['qwen-plus', 'qwen-max'] },
+  { id: 'siliconflow', name: 'SiliconFlow', type: 'openai', baseUrl: 'https://api.siliconflow.cn/v1', models: ['deepseek-ai/DeepSeek-V3'] },
+  { id: 'together', name: 'Together AI', type: 'openai', baseUrl: 'https://api.together.xyz/v1', models: ['meta-llama/Llama-3.3-70B-Instruct-Turbo'] },
+  { id: 'perplexity', name: 'Perplexity', type: 'openai', baseUrl: 'https://api.perplexity.ai', models: ['sonar', 'sonar-pro'] },
+  { id: 'ollama', name: 'Ollama (lokal)', type: 'openai', baseUrl: 'http://localhost:11434/v1', models: [], noKey: true },
+  { id: 'lmstudio', name: 'LM Studio (lokal)', type: 'openai', baseUrl: 'http://localhost:1234/v1', models: [], noKey: true },
+];
+const PRESET_AGENTS = [
+  { id: 'default', name: 'Allgemeiner Assistent', emoji: '💬', prompt: 'Du bist ein hilfreicher, präziser Assistent. Antworte auf Deutsch, außer ich schreibe in einer anderen Sprache. Sei klar und knapp, erkläre Schritt für Schritt, wenn es sinnvoll ist, und sag ehrlich, wenn du etwas nicht sicher weißt.', tools: ['get_datetime', 'calculator'], model: null, temperature: null, maxTokens: null, contextCount: 30 },
+  { id: 'research', name: 'Recherche-Agent', emoji: '🔎', prompt: 'Du bist ein Recherche-Agent. Gehe schrittweise vor: Überlege, welche Informationen fehlen, nutze die Werkzeuge (wikipedia, web_search, web_fetch) und prüfe mehrere Quellen. Antworte auf Deutsch. Nenne am Ende die Quellen (URLs) und trenne gesicherte Fakten von Vermutungen.', tools: ['get_datetime', 'wikipedia', 'web_search', 'web_fetch', 'calculator'], model: null, temperature: null, maxTokens: null, contextCount: 30 },
+  { id: 'coder', name: 'Code- & Rechen-Helfer', emoji: '🧮', prompt: 'Du bist ein erfahrener Programmier- und Rechenhelfer. Antworte auf Deutsch. Prüfe Berechnungen und Datenverarbeitung mit dem Werkzeug run_js (JavaScript-Sandbox), statt im Kopf zu rechnen. Zeige Code in Codeblöcken und erkläre kurz, was er tut.', tools: ['run_js', 'calculator', 'get_datetime'], model: null, temperature: null, maxTokens: null, contextCount: 30 },
+  { id: 'notes', name: 'Notiz-Agent', emoji: '📝', prompt: 'Du bist ein Notiz-Assistent. Speichere wichtige Informationen, die ich dir gebe, mit notes_save (kurzer Titel, klarer Text). Wenn ich nach früheren Notizen frage, suche mit notes_list. Antworte auf Deutsch.', tools: ['notes_save', 'notes_list', 'get_datetime'], model: null, temperature: null, maxTokens: null, contextCount: 30 },
+  { id: 'translator', name: 'Übersetzer', emoji: '🌐', prompt: 'Du bist ein professioneller Übersetzer. Erkenne die Ausgangssprache automatisch. Ist der Text deutsch, übersetze ihn ins Englische, sonst ins Deutsche – außer ich nenne eine Zielsprache. Gib nur die Übersetzung aus.', tools: [], model: null, temperature: null, maxTokens: null, contextCount: 10 },
+];
+const DEFAULT_SETTINGS = {
+  theme: 'auto', accent: '#00b96b', uiFont: 16, chatFont: 16, codeFont: 13, lineHeight: 1.6,
+  fontFamily: 'system', customFont: '', fontFileName: '', contentWidth: 'normal', msgStyle: 'list',
+  defaultModel: null, sendKey: null, maxSteps: 8, dateInPrompt: true, thinkOpen: false,
+  confirm: { run_js: true },
+  search: { provider: 'tavily', tavilyKey: '', jinaKey: '', searxUrl: '' },
+  proxy: 'https://r.jina.ai/{url}',
+};
+
+/* ===== Speicher (IndexedDB) ===== */
+const DB = {
+  db: null,
+  open() {
+    return new Promise((res, rej) => {
+      const r = indexedDB.open('ki-studio', 1);
+      r.onupgradeneeded = () => { const d = r.result; d.createObjectStore('kv'); d.createObjectStore('chats', { keyPath: 'id' }); d.createObjectStore('notes', { keyPath: 'id' }); };
+      r.onsuccess = () => { this.db = r.result; res(); };
+      r.onerror = () => rej(r.error);
+    });
+  },
+  st(store, mode = 'readonly') { return this.db.transaction(store, mode).objectStore(store); },
+  rq(r) { return new Promise((res, rej) => { r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); },
+  get(store, key) { return this.rq(this.st(store).get(key)); },
+  put(store, val, key) { const s = this.st(store, 'readwrite'); return this.rq(key === undefined ? s.put(val) : s.put(val, key)); },
+  del(store, key) { return this.rq(this.st(store, 'readwrite').delete(key)); },
+  all(store) { return this.rq(this.st(store).getAll()); },
+  clear(store) { return this.rq(this.st(store, 'readwrite').clear()); },
+};
+
+/* ===== Zustand ===== */
+const S = {
+  settings: null, providers: [], agents: [], chats: [],
+  view: 'chat', chatId: null, tab: 'providers', provSel: null, search: '', draft: '', pending: [],
+  stick: true, running: new Map(), panelOpen: false, installEvt: null,
+  compare: { models: [], prompt: '', system: '', results: [], ctrl: null },
+};
+const UI = {};
+const saveSettings = () => DB.put('kv', S.settings, 'settings');
+const saveProviders = () => DB.put('kv', S.providers, 'providers');
+const saveAgents = () => DB.put('kv', S.agents, 'agents');
+const saveChat = c => (c.messages.length ? DB.put('chats', c) : DB.del('chats', c.id));
+const dSaveProviders = debounce(saveProviders, 400);
+const dSaveSettings = debounce(saveSettings, 300);
+const getProv = id => S.providers.find(p => p.id === id);
+const getAgent = id => S.agents.find(a => a.id === id) || S.agents[0];
+const curChat = () => S.chats.find(c => c.id === S.chatId);
+const refKey = r => r.p + '::' + r.m;
+const parseKey = k => { const i = k.indexOf('::'); return { p: k.slice(0, i), m: k.slice(i + 2) }; };
+
+async function loadAll() {
+  await DB.open();
+  const st = await DB.get('kv', 'settings');
+  S.settings = deepMerge(structuredClone(DEFAULT_SETTINGS), st || {});
+  if (!S.settings.sendKey) S.settings.sendKey = matchMedia('(pointer:coarse)').matches ? 'button' : 'enter';
+  const provs = (await DB.get('kv', 'providers')) || [];
+  for (const pr of PRESET_PROVIDERS) {
+    if (!provs.find(x => x.id === pr.id)) provs.push({ id: pr.id, name: pr.name, type: pr.type, baseUrl: pr.baseUrl, apiKey: '', enabled: false, models: pr.models.map(id => ({ id })), builtin: true, noKey: !!pr.noKey });
+  }
+  S.providers = provs;
+  let ags = await DB.get('kv', 'agents');
+  if (!ags || !ags.length) ags = structuredClone(PRESET_AGENTS);
+  S.agents = ags;
+  S.chats = (await DB.all('chats')).sort((a, b) => b.updatedAt - a.updatedAt);
+  const ff = await DB.get('kv', 'fontFile');
+  if (ff) await registerFont(ff.buf);
+}
+async function registerFont(buf) {
+  try { const f = new FontFace('UserFont', buf); await f.load(); document.fonts.add(f); return true; } catch (e) { console.warn('Schrift', e); return false; }
+}
+
+/* ===== Darstellung ===== */
+const FONT_STACKS = {
+  system: 'system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif',
+  serif: 'Georgia,"Times New Roman","Noto Serif",serif',
+  mono: 'ui-monospace,"Cascadia Code",Consolas,"Roboto Mono",monospace',
+  hand: '"Comic Sans MS","Comic Neue","Segoe Print",cursive',
+  rounded: '"Trebuchet MS",Verdana,"Noto Sans",sans-serif',
+};
+function applyAppearance() {
+  const st = S.settings, root = document.documentElement;
+  let theme = st.theme;
+  if (theme === 'auto') theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  root.dataset.theme = theme;
+  root.style.setProperty('--fs', st.uiFont + 'px');
+  root.style.setProperty('--chat-fs', st.chatFont + 'px');
+  root.style.setProperty('--code-fs', st.codeFont + 'px');
+  root.style.setProperty('--lh', st.lineHeight);
+  root.style.setProperty('--accent', st.accent);
+  let ff = FONT_STACKS[st.fontFamily] || FONT_STACKS.system;
+  if (st.fontFamily === 'custom' && st.customFont.trim()) ff = st.customFont + ',' + FONT_STACKS.system;
+  if (st.fontFamily === 'file') ff = '"UserFont",' + FONT_STACKS.system;
+  root.style.setProperty('--ff', ff);
+  root.style.setProperty('--content-w', { narrow: '640px', normal: '820px', wide: '1040px', full: '100%' }[st.contentWidth] || '820px');
+  const m = document.querySelector('meta[name=theme-color]');
+  if (m) m.content = theme === 'dark' ? '#1b1c1e' : '#ffffff';
+}
+
+/* ===== Markdown (eigener, kleiner Renderer) ===== */
+function codeBlock(lang, code) {
+  const l = (lang || '').toLowerCase();
+  const prev = (l === 'html' || l === 'svg') ? '<button data-act="preview">Vorschau</button>' : '';
+  return `<div class="code"><div class="code-h"><span>${esc(lang || 'text')}</span><span>${prev}<button data-act="copycode">Kopieren</button></span></div><pre><code>${esc(code)}</code></pre></div>`;
+}
+function inline(s) {
+  const codes = [];
+  s = s.replace(/`([^`\n]+)`/g, (m, c) => { codes.push('<code>' + esc(c) + '</code>'); return '\u0001' + (codes.length - 1) + '\u0001'; });
+  s = esc(s);
+  s = s.replace(/\[([^\]\n]+)\]\((https?:\/\/[^\s)]+|mailto:[^\s)]+)\)/g, (m, t, u) => `<a href="${u}" target="_blank" rel="noopener noreferrer">${t}</a>`);
+  s = s.replace(/(^|[\s(])(https?:\/\/[^\s<)]+[^\s<).,;:!?])/g, (m, p, u) => `${p}<a href="${u}" target="_blank" rel="noopener noreferrer">${u}</a>`);
+  s = s.replace(/\*\*([^*\n]+?)\*\*/g, '<strong>$1</strong>').replace(/__([^_\n]+?)__/g, '<strong>$1</strong>');
+  s = s.replace(/(^|[^*\w])\*([^*\n]+?)\*(?!\*)/g, '$1<em>$2</em>').replace(/(^|[^_\w])_([^_\n]+?)_(?![_\w])/g, '$1<em>$2</em>');
+  s = s.replace(/~~([^~\n]+?)~~/g, '<del>$1</del>');
+  return s.replace(/\u0001(\d+)\u0001/g, (m, i) => codes[i]);
+}
+const isSep = l => l.includes('-') && /^\s*\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)*\|?\s*$/.test(l);
+const splitRow = l => l.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map(s => s.trim());
+function parseList(L, i) {
+  const items = [];
+  while (i < L.length) {
+    const m = L[i].match(/^(\s*)([-*+]|\d+[.)])\s+(.*)$/);
+    if (m) { items.push({ ind: m[1].replace(/\t/g, '    ').length, ord: /\d/.test(m[2]), text: m[3] }); i++; }
+    else if (L[i].trim() && /^\s{2,}\S/.test(L[i]) && items.length && !/^\u0000/.test(L[i].trim())) { items[items.length - 1].text += ' ' + L[i].trim(); i++; }
+    else if (!L[i].trim() && i + 1 < L.length && /^\s*([-*+]|\d+[.)])\s+/.test(L[i + 1])) { i++; }
+    else break;
+  }
+  let pos = 0;
+  const build = indent => {
+    const ord = items[pos].ord; let out = ord ? '<ol>' : '<ul>';
+    while (pos < items.length && items[pos].ind >= indent) {
+      if (items[pos].ind > indent) { out = out.replace(/<\/li>$/, '') + build(items[pos].ind) + '</li>'; continue; }
+      const it = items[pos++]; let li = '<li>' + inline(it.text);
+      if (pos < items.length && items[pos].ind > indent) li += build(items[pos].ind);
+      out += li + '</li>';
+    }
+    return out + (ord ? '</ol>' : '</ul>');
+  };
+  return [build(items[0].ind), i];
+}
+function mdBlocks(text, blocks) {
+  const L = text.split('\n'); let i = 0, out = '';
+  const ph = /^\u0000(\d+)\u0000$/;
+  const listRe = /^\s*([-*+]|\d+[.)])\s+\S/;
+  const hrRe = /^\s*([-*_])(\s*\1){2,}\s*$/;
+  const tableAt = j => j + 1 < L.length && L[j].includes('|') && isSep(L[j + 1]);
+  const blockStart = j => /^#{1,6}\s/.test(L[j]) || ph.test(L[j].trim()) || listRe.test(L[j]) || /^\s*>/.test(L[j]) || hrRe.test(L[j]) || tableAt(j);
+  while (i < L.length) {
+    const line = L[i], t = line.trim();
+    if (!t) { i++; continue; }
+    let m;
+    if ((m = ph.exec(t))) { out += blocks[+m[1]]; i++; continue; }
+    if ((m = /^(#{1,6})\s+(.*)$/.exec(line))) { const n = m[1].length; out += `<h${n}>${inline(m[2])}</h${n}>`; i++; continue; }
+    if (hrRe.test(line)) { out += '<hr>'; i++; continue; }
+    if (tableAt(i)) {
+      const head = splitRow(L[i]);
+      const al = splitRow(L[i + 1]).map(c => (c.startsWith(':') && c.endsWith(':') ? 'center' : c.endsWith(':') ? 'right' : ''));
+      i += 2; let rows = '';
+      while (i < L.length && L[i].trim() && L[i].includes('|')) {
+        const cells = splitRow(L[i]);
+        rows += '<tr>' + head.map((_, k) => `<td${al[k] ? ` style="text-align:${al[k]}"` : ''}>${inline(cells[k] || '')}</td>`).join('') + '</tr>'; i++;
+      }
+      out += '<div class="tbl"><table><thead><tr>' + head.map((c, k) => `<th${al[k] ? ` style="text-align:${al[k]}"` : ''}>${inline(c)}</th>`).join('') + '</tr></thead><tbody>' + rows + '</tbody></table></div>';
+      continue;
+    }
+    if (/^\s*>/.test(line)) {
+      const q = []; while (i < L.length && /^\s*>/.test(L[i])) { q.push(L[i].replace(/^\s*>\s?/, '')); i++; }
+      out += '<blockquote>' + md(q.join('\n')) + '</blockquote>'; continue;
+    }
+    if (listRe.test(line)) { const r = parseList(L, i); out += r[0]; i = r[1]; continue; }
+    const p = [line]; i++;
+    while (i < L.length && L[i].trim() && !blockStart(i)) { p.push(L[i]); i++; }
+    out += '<p>' + p.map(inline).join('<br>') + '</p>';
+  }
+  return out;
+}
+function md(src) {
+  const blocks = [];
+  let text = String(src || '').replace(/\r\n?/g, '\n');
+  text = text.replace(/(^|\n)(```|~~~)[ \t]*([^\n]*)\n([\s\S]*?)(?:\n\2[ \t]*(?=\n|$)|$)/g, (m, pre, fence, lang, code) => {
+    blocks.push(codeBlock(lang.trim().split(/\s/)[0], code)); return pre + '\u0000' + (blocks.length - 1) + '\u0000';
+  });
+  return mdBlocks(text, blocks);
+}
+
+/* ===== Kleine Helfer ===== */
+function fmtTime(ts) { const d = new Date(ts), n = new Date(); const t = d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }); return d.toDateString() === n.toDateString() ? t : d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' }) + ' ' + t; }
+function fmtDate(ts) { const d = new Date(ts), n = new Date(); return d.toDateString() === n.toDateString() ? d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' }); }
+function download(name, text, type = 'application/json') {
+  const a = h('a', { href: URL.createObjectURL(new Blob([text], { type })), download: name });
+  document.body.append(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+async function copyText(t) {
+  try { await navigator.clipboard.writeText(t); }
+  catch { const ta = h('textarea', { value: t, style: { position: 'fixed', opacity: 0 } }); document.body.append(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
+  toast('Kopiert');
+}
+function toast(msg) { const t = h('div', { class: 'toast' }, msg); document.body.append(t); setTimeout(() => t.remove(), 2800); }
+
+/* ===== Anbieter-Adapter: OpenAI-kompatibel, Anthropic, Gemini (alle mit Streaming + Tool-Calling) ===== */
+class ApiError extends Error {
+  constructor(status, body) {
+    let msg = '';
+    try {
+      const j = JSON.parse(body);
+      msg = j.error?.message || j.error?.msg || (typeof j.error === 'string' ? j.error : '') || j.message || '';
+      if (!msg && Array.isArray(j)) msg = j[0]?.error?.message || '';
+    } catch { /* kein JSON */ }
+    if (!msg) msg = String(body || '').slice(0, 500);
+    const hint = status === 401 || status === 403 ? ' – API-Schlüssel oder Berechtigung prüfen.' : status === 404 ? ' – Modellname oder API-Adresse prüfen.' : status === 429 ? ' – Limit erreicht, später erneut versuchen.' : '';
+    super((status ? `HTTP ${status}: ` : '') + msg + hint);
+    this.status = status; this.body = body;
+  }
+}
+function errText(e) {
+  if (e instanceof ApiError) return e.message;
+  if (e && e.name === 'AbortError') return 'Abgebrochen';
+  if (e instanceof TypeError) return 'Verbindung fehlgeschlagen: Netzwerk, falsche API-Adresse oder der Anbieter erlaubt keine Browser-Anfragen (CORS). (' + e.message + ')';
+  return String((e && e.message) || e);
+}
+const safeJSON = s => { try { return s ? JSON.parse(s) : {}; } catch { return { _raw: s }; } };
+function joinUrl(base, path) { base = (base || '').trim(); if (base.endsWith('#')) return base.slice(0, -1); return base.replace(/\/+$/, '') + path; }
+
+async function sseRead(res, onData) {
+  const reader = res.body.getReader(), dec = new TextDecoder();
+  let buf = '';
+  const handle = raw => {
+    let ev = 'message'; const data = [];
+    for (const ln of raw.split(/\r?\n/)) {
+      if (ln.startsWith('event:')) ev = ln.slice(6).trim();
+      else if (ln.startsWith('data:')) data.push(ln.slice(5).replace(/^ /, ''));
+    }
+    if (data.length) onData(ev, data.join('\n'));
+  };
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, { stream: true });
+    let idx;
+    while ((idx = buf.search(/\r?\n\r?\n/)) >= 0) {
+      const raw = buf.slice(0, idx);
+      buf = buf.slice(idx).replace(/^\r?\n\r?\n/, '');
+      handle(raw);
+    }
+  }
+  if (buf.trim()) handle(buf);
+}
+
+const attText = m => {
+  let t = m.content || '';
+  for (const a of m.attachments || []) if (a.type === 'text') t += `\n\n[Datei: ${a.name}]\n${a.text}`;
+  return t;
+};
+const imgs = m => (m.attachments || []).filter(a => a.type === 'image');
+const splitDataUrl = u => { const r = /^data:([^;]+);base64,(.*)$/.exec(u || ''); return r ? { mime: r[1], data: r[2] } : null; };
+
+/* --- OpenAI-kompatibel --- */
+function toOpenAI(system, msgs) {
+  const out = [];
+  if (system) out.push({ role: 'system', content: system });
+  for (const m of msgs) {
+    if (m.role === 'user') {
+      const im = imgs(m), text = attText(m);
+      out.push({ role: 'user', content: im.length ? [{ type: 'text', text: text || ' ' }, ...im.map(i => ({ type: 'image_url', image_url: { url: i.dataUrl } }))] : (text || ' ') });
+    } else if (m.role === 'assistant') {
+      const o = { role: 'assistant', content: m.content || '' };
+      if (m.toolCalls?.length) o.tool_calls = m.toolCalls.map(t => ({ id: t.id, type: 'function', function: { name: t.name, arguments: JSON.stringify(t.args || {}) } }));
+      out.push(o);
+    } else if (m.role === 'tool') out.push({ role: 'tool', tool_call_id: m.toolCallId, content: m.content || '(leer)' });
+  }
+  return out;
+}
+async function callOpenAI(o) {
+  const p = o.provider, url = joinUrl(p.baseUrl, '/chat/completions');
+  const isOAI = /api\.openai\.com/.test(p.baseUrl);
+  const body = { model: o.model, messages: toOpenAI(o.system, o.messages), stream: true };
+  if (o.temperature != null && !(isOAI && /^(o\d|gpt-5)/.test(o.model))) body.temperature = o.temperature;
+  if (o.maxTokens) body[isOAI ? 'max_completion_tokens' : 'max_tokens'] = o.maxTokens;
+  if (o.tools?.length) body.tools = o.tools.map(t => ({ type: 'function', function: { name: t.name, description: t.description, parameters: t.parameters } }));
+  const headers = { 'Content-Type': 'application/json' };
+  if (p.apiKey) headers.Authorization = 'Bearer ' + p.apiKey;
+  if (/openrouter\.ai/.test(p.baseUrl)) headers['X-Title'] = 'KI-Studio';
+  let withUsage = true;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    if (withUsage) body.stream_options = { include_usage: true }; else delete body.stream_options;
+    const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body), signal: o.signal });
+    if (!res.ok) {
+      const t = await res.text().catch(() => '');
+      if (attempt === 0 && withUsage && (res.status === 400 || res.status === 422) && /stream_options/i.test(t)) { withUsage = false; continue; }
+      throw new ApiError(res.status, t);
+    }
+    return readOpenAI(res, o);
+  }
+}
+async function readOpenAI(res, o) {
+  let text = '', reasoning = '', usage = null, finish = null;
+  const tcs = [];
+  if (!(res.headers.get('content-type') || '').includes('event-stream')) {
+    const j = await res.json(); const msg = j.choices?.[0]?.message || {};
+    text = msg.content || ''; if (text) o.onText(text);
+    reasoning = msg.reasoning_content || ''; if (reasoning) o.onReasoning(reasoning);
+    const toolCalls = (msg.tool_calls || []).map(t => ({ id: t.id || 'call_' + uid(), name: t.function?.name, args: safeJSON(t.function?.arguments) }));
+    if (j.usage) usage = { in: j.usage.prompt_tokens, out: j.usage.completion_tokens };
+    return { text, reasoning, toolCalls, usage, finish: j.choices?.[0]?.finish_reason };
+  }
+  await sseRead(res, (ev, d) => {
+    if (d === '[DONE]') return;
+    let j; try { j = JSON.parse(d); } catch { return; }
+    if (j.error) throw new ApiError(0, JSON.stringify({ error: j.error }));
+    if (j.usage) usage = { in: j.usage.prompt_tokens, out: j.usage.completion_tokens };
+    const c = j.choices?.[0]; if (!c) return;
+    const dl = c.delta || {};
+    if (dl.content) { text += dl.content; o.onText(dl.content); }
+    const rc = dl.reasoning_content ?? dl.reasoning;
+    if (rc) { reasoning += rc; o.onReasoning(rc); }
+    if (dl.tool_calls) for (const t of dl.tool_calls) {
+      const i = t.index ?? 0; const cur = tcs[i] || (tcs[i] = { id: '', name: '', args: '' });
+      if (t.id) cur.id = t.id;
+      if (t.function?.name) cur.name += t.function.name;
+      if (t.function?.arguments) cur.args += t.function.arguments;
+    }
+    if (c.finish_reason) finish = c.finish_reason;
+  });
+  const toolCalls = tcs.filter(Boolean).map(t => ({ id: t.id || 'call_' + uid(), name: t.name, args: safeJSON(t.args) }));
+  return { text, reasoning, toolCalls, usage, finish };
+}
+
+/* --- Anthropic --- */
+function toAnthropic(msgs) {
+  const out = [];
+  const push = (role, content) => { const l = out[out.length - 1]; if (l && l.role === role) l.content.push(...content); else out.push({ role, content }); };
+  for (const m of msgs) {
+    if (m.role === 'user') {
+      const c = [];
+      for (const a of imgs(m)) { const d = splitDataUrl(a.dataUrl); if (d) c.push({ type: 'image', source: { type: 'base64', media_type: d.mime, data: d.data } }); }
+      c.push({ type: 'text', text: attText(m) || '(leer)' });
+      push('user', c);
+    } else if (m.role === 'assistant') {
+      const c = [];
+      if (m.content) c.push({ type: 'text', text: m.content });
+      for (const t of m.toolCalls || []) c.push({ type: 'tool_use', id: t.id, name: t.name, input: t.args || {} });
+      if (c.length) push('assistant', c);
+    } else if (m.role === 'tool') {
+      push('user', [{ type: 'tool_result', tool_use_id: m.toolCallId, content: m.content || '(leer)', is_error: m.status === 'error' ? true : undefined }]);
+    }
+  }
+  return out;
+}
+async function callAnthropic(o) {
+  const p = o.provider, url = joinUrl(p.baseUrl.replace(/\/v1\/?$/, ''), '/v1/messages');
+  const body = { model: o.model, max_tokens: o.maxTokens || 8192, stream: true, messages: toAnthropic(o.messages) };
+  if (o.system) body.system = o.system;
+  if (o.temperature != null) body.temperature = o.temperature;
+  if (o.tools?.length) body.tools = o.tools.map(t => ({ name: t.name, description: t.description, input_schema: t.parameters }));
+  const res = await fetch(url, { method: 'POST', signal: o.signal, body: JSON.stringify(body), headers: { 'Content-Type': 'application/json', 'x-api-key': p.apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' } });
+  if (!res.ok) throw new ApiError(res.status, await res.text().catch(() => ''));
+  let text = '', reasoning = '', finish = null; const usage = { in: 0, out: 0 }; const blocks = {};
+  await sseRead(res, (ev, d) => {
+    let j; try { j = JSON.parse(d); } catch { return; }
+    if (j.type === 'message_start') usage.in = j.message?.usage?.input_tokens || 0;
+    else if (j.type === 'content_block_start') blocks[j.index] = { type: j.content_block.type, id: j.content_block.id, name: j.content_block.name, json: '' };
+    else if (j.type === 'content_block_delta') {
+      const dl = j.delta, b = blocks[j.index];
+      if (dl.type === 'text_delta') { text += dl.text; o.onText(dl.text); }
+      else if (dl.type === 'thinking_delta') { reasoning += dl.thinking; o.onReasoning(dl.thinking); }
+      else if (dl.type === 'input_json_delta' && b) b.json += dl.partial_json;
+    } else if (j.type === 'message_delta') {
+      if (j.usage?.output_tokens != null) usage.out = j.usage.output_tokens;
+      if (j.delta?.stop_reason) finish = j.delta.stop_reason;
+    } else if (j.type === 'error') throw new ApiError(0, JSON.stringify({ error: j.error }));
+  });
+  const toolCalls = Object.values(blocks).filter(b => b.type === 'tool_use').map(b => ({ id: b.id, name: b.name, args: safeJSON(b.json) }));
+  return { text, reasoning, toolCalls, usage, finish };
+}
+
+/* --- Google Gemini --- */
+function toGemini(msgs) {
+  const out = [];
+  const push = (role, parts) => { const l = out[out.length - 1]; if (l && l.role === role) l.parts.push(...parts); else out.push({ role, parts }); };
+  for (const m of msgs) {
+    if (m.role === 'user') {
+      const parts = [{ text: attText(m) || ' ' }];
+      for (const a of imgs(m)) { const d = splitDataUrl(a.dataUrl); if (d) parts.push({ inlineData: { mimeType: d.mime, data: d.data } }); }
+      push('user', parts);
+    } else if (m.role === 'assistant') {
+      const parts = [];
+      if (m.content) parts.push({ text: m.content });
+      for (const t of m.toolCalls || []) { const fp = { functionCall: { name: t.name, args: t.args || {} } }; if (t.sig) fp.thoughtSignature = t.sig; parts.push(fp); }
+      if (parts.length) push('model', parts);
+    } else if (m.role === 'tool') {
+      push('user', [{ functionResponse: { name: m.name, response: m.status === 'error' ? { error: m.content } : { result: m.content } } }]);
+    }
+  }
+  return out;
+}
+async function callGemini(o) {
+  const p = o.provider;
+  const url = joinUrl(p.baseUrl, `/models/${encodeURIComponent(o.model)}:streamGenerateContent`) + '?alt=sse';
+  const body = { contents: toGemini(o.messages) };
+  if (o.system) body.systemInstruction = { parts: [{ text: o.system }] };
+  const gc = {}; if (o.temperature != null) gc.temperature = o.temperature; if (o.maxTokens) gc.maxOutputTokens = o.maxTokens;
+  if (Object.keys(gc).length) body.generationConfig = gc;
+  if (o.tools?.length) body.tools = [{ functionDeclarations: o.tools.map(t => ({ name: t.name, description: t.description, parameters: Object.keys(t.parameters?.properties || {}).length ? t.parameters : undefined })) }];
+  const res = await fetch(url, { method: 'POST', signal: o.signal, body: JSON.stringify(body), headers: { 'Content-Type': 'application/json', 'x-goog-api-key': p.apiKey } });
+  if (!res.ok) throw new ApiError(res.status, await res.text().catch(() => ''));
+  let text = '', reasoning = '', usage = null, finish = null; const toolCalls = [];
+  await sseRead(res, (ev, d) => {
+    let j; try { j = JSON.parse(d); } catch { return; }
+    if (j.error) throw new ApiError(0, JSON.stringify({ error: j.error }));
+    const c = j.candidates?.[0];
+    for (const part of c?.content?.parts || []) {
+      if (part.functionCall) toolCalls.push({ id: 'call_' + uid(), name: part.functionCall.name, args: part.functionCall.args || {}, sig: part.thoughtSignature });
+      else if (part.text) { if (part.thought) { reasoning += part.text; o.onReasoning(part.text); } else { text += part.text; o.onText(part.text); } }
+    }
+    if (c?.finishReason) finish = c.finishReason;
+    if (j.usageMetadata) usage = { in: j.usageMetadata.promptTokenCount, out: j.usageMetadata.candidatesTokenCount };
+  });
+  return { text, reasoning, toolCalls, usage, finish };
+}
+
+function callModel(o) {
+  const fn = { openai: callOpenAI, anthropic: callAnthropic, gemini: callGemini }[o.provider.type] || callOpenAI;
+  return fn(o);
+}
+
+async function listModels(p) {
+  if (p.type === 'anthropic') {
+    const r = await fetch(joinUrl(p.baseUrl.replace(/\/v1\/?$/, ''), '/v1/models?limit=1000'), { headers: { 'x-api-key': p.apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' } });
+    if (!r.ok) throw new ApiError(r.status, await r.text());
+    return (await r.json()).data.map(x => x.id);
+  }
+  if (p.type === 'gemini') {
+    const r = await fetch(joinUrl(p.baseUrl, '/models?pageSize=1000'), { headers: { 'x-goog-api-key': p.apiKey } });
+    if (!r.ok) throw new ApiError(r.status, await r.text());
+    return ((await r.json()).models || []).filter(m => (m.supportedGenerationMethods || []).includes('generateContent')).map(m => m.name.replace(/^models\//, ''));
+  }
+  const r = await fetch(joinUrl(p.baseUrl, '/models'), { headers: p.apiKey ? { Authorization: 'Bearer ' + p.apiKey } : {} });
+  if (!r.ok) throw new ApiError(r.status, await r.text());
+  const j = await r.json(); const arr = j.data || j.models || j;
+  return arr.map(x => (typeof x === 'string' ? x : x.id || x.name)).filter(Boolean).sort();
+}
+
+async function testProvider(p) {
+  const t0 = Date.now(), ctrl = new AbortController(), to = setTimeout(() => ctrl.abort(), 25000);
+  try {
+    const m = p.models[0]?.id;
+    if (!m) { const ms = await listModels(p); return { ok: true, msg: `✓ Verbindung ok – ${ms.length} Modelle verfügbar („Modelle laden“ drücken).` }; }
+    const r = await callModel({ provider: p, model: m, system: '', messages: [{ role: 'user', content: 'Antworte nur mit dem Wort OK.' }], tools: [], temperature: null, maxTokens: 32, signal: ctrl.signal, onText() {}, onReasoning() {} });
+    return { ok: true, msg: `✓ Verbindung ok (${m}, ${Date.now() - t0} ms)${r.text ? ': „' + r.text.trim().slice(0, 40) + '“' : ''}` };
+  } catch (e) { return { ok: false, msg: errText(e) }; }
+  finally { clearTimeout(to); }
+}
+
+/* ===== Werkzeuge für Agenten (laufen im Browser) ===== */
+const MAX_TOOL_OUT = 12000;
+function timeoutSignal(ms, signal) {
+  const c = new AbortController(); const t = setTimeout(() => c.abort(), ms);
+  signal?.addEventListener('abort', () => { clearTimeout(t); c.abort(); });
+  return c.signal;
+}
+function htmlToText(html) {
+  const d = new DOMParser().parseFromString(html, 'text/html');
+  d.querySelectorAll('script,style,noscript,nav,footer,header,svg,iframe').forEach(n => n.remove());
+  const t = (d.body?.textContent || '').replace(/[ \t\r\f\v]+/g, ' ').replace(/\n\s*\n\s*\n+/g, '\n\n').trim();
+  return (d.title ? d.title + '\n\n' : '') + t;
+}
+function calc(expr) {
+  let e = String(expr || '').trim().replace(/×/g, '*').replace(/÷/g, '/').replace(/\^/g, '**').replace(/\bln\b/g, 'log').replace(/\blog10\b/g, 'log10');
+  const names = ['sin', 'cos', 'tan', 'asin', 'acos', 'atan', 'sqrt', 'cbrt', 'log10', 'log2', 'log', 'exp', 'abs', 'round', 'floor', 'ceil', 'min', 'max', 'pow', 'pi', 'e'];
+  const stripped = e.replace(new RegExp('\\b(' + names.join('|') + ')\\b', 'g'), '').replace(/(?<=\d)[eE](?=[+-]?\d)/g, '');
+  if (!e || /[^0-9+\-*/%().,\s]/.test(stripped)) throw new Error('Ungültiger Ausdruck (erlaubt: Zahlen, + - * / ^ %, Klammern und gängige Funktionen).');
+  const fn = new Function(...names, '"use strict"; return (' + e.replace(/\bpi\b/g, 'pi') + ');');
+  const r = fn(Math.sin, Math.cos, Math.tan, Math.asin, Math.acos, Math.atan, Math.sqrt, Math.cbrt, Math.log10, Math.log2, Math.log, Math.exp, Math.abs, Math.round, Math.floor, Math.ceil, Math.min, Math.max, Math.pow, Math.PI, Math.E);
+  if (typeof r !== 'number' || !isFinite(r)) throw new Error('Ergebnis ist keine endliche Zahl.');
+  return String(+r.toPrecision(14));
+}
+function runSandbox(code, timeout = 10000) {
+  return new Promise(resolve => {
+    const iframe = document.createElement('iframe');
+    iframe.setAttribute('sandbox', 'allow-scripts'); iframe.style.display = 'none';
+    const id = uid(); let done = false;
+    const finish = r => { if (done) return; done = true; clearTimeout(tm); removeEventListener('message', onMsg); iframe.remove(); resolve(r); };
+    const onMsg = ev => { if (ev.source !== iframe.contentWindow || ev.data?.id !== id) return; finish(ev.data); };
+    addEventListener('message', onMsg);
+    const tm = setTimeout(() => finish({ error: 'Zeitüberschreitung nach ' + timeout / 1000 + ' s' }), timeout);
+    const workerSrc = `
+      const logs=[];const fmt=a=>a.map(x=>typeof x==='string'?x:(()=>{try{return JSON.stringify(x)}catch(e){return String(x)}})()).join(' ');
+      console.log=(...a)=>logs.push(fmt(a));console.info=console.log;console.warn=(...a)=>logs.push('WARN '+fmt(a));console.error=(...a)=>logs.push('ERROR '+fmt(a));
+      self.onmessage=async e=>{try{const AF=Object.getPrototypeOf(async function(){}).constructor;const r=await new AF(e.data)();postMessage({logs,result:r===undefined?undefined:fmt([r])});}catch(err){postMessage({logs,error:String(err)});}};`;
+    const frameJs = `
+      const ID=${JSON.stringify(id)},CODE=${JSON.stringify(code).replace(/</g, '\\u003c')},WSRC=${JSON.stringify(workerSrc).replace(/</g, '\\u003c')};
+      try{const w=new Worker(URL.createObjectURL(new Blob([WSRC],{type:'text/javascript'})));
+        w.onmessage=e=>parent.postMessage(Object.assign({id:ID},e.data),'*');
+        w.onerror=e=>parent.postMessage({id:ID,error:String(e.message||e)},'*');
+        w.postMessage(CODE);
+      }catch(e){parent.postMessage({id:ID,error:'Sandbox-Worker nicht verfügbar: '+e},'*');}`;
+    iframe.srcdoc = '<!doctype html><html><body><script>' + frameJs + '<\/script></body></html>';
+    document.body.appendChild(iframe);
+  });
+}
+
+const TOOLS = {
+  get_datetime: {
+    label: 'Datum & Uhrzeit', description: 'Gibt das aktuelle Datum und die Uhrzeit des Geräts zurück.',
+    parameters: { type: 'object', properties: {} },
+    async run() { const d = new Date(); return d.toLocaleString('de-DE', { dateStyle: 'full', timeStyle: 'long' }) + '\nISO: ' + d.toISOString(); },
+  },
+  calculator: {
+    label: 'Taschenrechner', description: 'Berechnet einen mathematischen Ausdruck, z. B. "sqrt(2)*3^2" oder "(12.5*4)/3". Unterstützt + - * / ^ %, Klammern, sin, cos, tan, sqrt, log, ln, abs, round, floor, ceil, min, max, pi, e. Dezimalpunkt statt Komma verwenden.',
+    parameters: { type: 'object', properties: { expression: { type: 'string', description: 'Mathematischer Ausdruck' } }, required: ['expression'] },
+    async run({ expression }) { return calc(expression); },
+  },
+  wikipedia: {
+    label: 'Wikipedia', description: 'Sucht in Wikipedia und liefert Zusammenfassungen der besten Treffer mit Link.',
+    parameters: { type: 'object', properties: { query: { type: 'string', description: 'Suchbegriff' }, lang: { type: 'string', description: 'Sprache: "de" (Standard) oder "en"' } }, required: ['query'] },
+    async run({ query, lang }, ctx) {
+      lang = lang === 'en' ? 'en' : 'de';
+      const api = `https://${lang}.wikipedia.org/w/api.php`;
+      const sr = await (await fetch(`${api}?action=query&list=search&srsearch=${encodeURIComponent(query)}&srlimit=3&format=json&origin=*`, { signal: timeoutSignal(15000, ctx.signal) })).json();
+      const hits = sr.query?.search || [];
+      if (!hits.length) return 'Keine Treffer.';
+      const ex = await (await fetch(`${api}?action=query&prop=extracts&exintro=1&explaintext=1&exchars=1500&exlimit=3&redirects=1&titles=${encodeURIComponent(hits.map(x => x.title).join('|'))}&format=json&origin=*`, { signal: timeoutSignal(15000, ctx.signal) })).json();
+      const pages = Object.values(ex.query?.pages || {});
+      return hits.map(x => { const pg = pages.find(p => p.title === x.title); return `# ${x.title}\nhttps://${lang}.wikipedia.org/wiki/${encodeURIComponent(x.title.replace(/ /g, '_'))}\n${(pg?.extract || '').trim() || '(keine Zusammenfassung)'}`; }).join('\n\n');
+    },
+  },
+  web_fetch: {
+    label: 'Webseite lesen', description: 'Lädt eine Webseite (URL) und liefert den lesbaren Text zurück. Nutze es, um Quellen zu lesen.',
+    parameters: { type: 'object', properties: { url: { type: 'string', description: 'Vollständige URL mit https://' } }, required: ['url'] },
+    async run({ url }, ctx) {
+      if (!/^https?:\/\//i.test(url || '')) throw new Error('Ungültige URL');
+      let txt = null, lastErr;
+      try {
+        const r = await fetch(url, { signal: timeoutSignal(15000, ctx.signal) });
+        if (r.ok) { const body = await r.text(); txt = /html/.test(r.headers.get('content-type') || '') ? htmlToText(body) : body; } else lastErr = new Error('HTTP ' + r.status);
+      } catch (e) { lastErr = e; }
+      if (txt == null) {
+        const px = (S.settings.proxy || '').trim();
+        if (!px) throw lastErr || new Error('Abruf nicht möglich (kein Proxy eingestellt)');
+        const r = await fetch(px.replace('{url}', url), { signal: timeoutSignal(25000, ctx.signal) });
+        if (!r.ok) throw new Error('Proxy HTTP ' + r.status);
+        txt = await r.text();
+      }
+      return txt;
+    },
+  },
+  web_search: {
+    label: 'Websuche', description: 'Durchsucht das Web und liefert Titel, Links und Ausschnitte. Benötigt einen Such-Schlüssel in den Einstellungen.',
+    parameters: { type: 'object', properties: { query: { type: 'string', description: 'Suchanfrage' } }, required: ['query'] },
+    async run({ query }, ctx) {
+      const s = S.settings.search; const sig = timeoutSignal(20000, ctx.signal);
+      if (s.provider === 'tavily') {
+        if (!s.tavilyKey) throw new Error('Kein Tavily-Schlüssel eingerichtet (Einstellungen → Werkzeuge).');
+        const r = await fetch('https://api.tavily.com/search', { method: 'POST', signal: sig, headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + s.tavilyKey }, body: JSON.stringify({ query, max_results: 6, include_answer: true }) });
+        if (!r.ok) throw new ApiError(r.status, await r.text());
+        const j = await r.json();
+        return (j.answer ? 'Kurzantwort: ' + j.answer + '\n\n' : '') + (j.results || []).map(x => `# ${x.title}\n${x.url}\n${(x.content || '').slice(0, 600)}`).join('\n\n');
+      }
+      if (s.provider === 'jina') {
+        if (!s.jinaKey) throw new Error('Kein Jina-Schlüssel eingerichtet (Einstellungen → Werkzeuge).');
+        const r = await fetch('https://s.jina.ai/?q=' + encodeURIComponent(query), { signal: sig, headers: { Authorization: 'Bearer ' + s.jinaKey, Accept: 'application/json' } });
+        if (!r.ok) throw new ApiError(r.status, await r.text());
+        const j = await r.json();
+        return (j.data || []).slice(0, 6).map(x => `# ${x.title}\n${x.url}\n${(x.description || x.content || '').slice(0, 600)}`).join('\n\n');
+      }
+      if (!s.searxUrl) throw new Error('Keine SearXNG-Adresse eingerichtet (Einstellungen → Werkzeuge).');
+      const r = await fetch(s.searxUrl.replace(/\/+$/, '') + '/search?format=json&q=' + encodeURIComponent(query), { signal: sig });
+      if (!r.ok) throw new ApiError(r.status, await r.text());
+      const j = await r.json();
+      return (j.results || []).slice(0, 6).map(x => `# ${x.title}\n${x.url}\n${(x.content || '').slice(0, 600)}`).join('\n\n');
+    },
+  },
+  notes_save: {
+    label: 'Notiz speichern', description: 'Speichert eine Notiz dauerhaft auf dem Gerät. Gleicher Titel überschreibt die vorhandene Notiz.',
+    parameters: { type: 'object', properties: { title: { type: 'string', description: 'Kurzer Titel' }, text: { type: 'string', description: 'Inhalt der Notiz' } }, required: ['title', 'text'] },
+    async run({ title, text }) {
+      const all = await DB.all('notes'); const ex = all.find(n => n.title.toLowerCase() === String(title).toLowerCase());
+      await DB.put('notes', { id: ex?.id || uid(), title: String(title), text: String(text), ts: Date.now() });
+      return ex ? 'Notiz aktualisiert.' : 'Notiz gespeichert.';
+    },
+  },
+  notes_list: {
+    label: 'Notizen lesen', description: 'Listet gespeicherte Notizen auf (optional gefiltert nach Suchbegriff).',
+    parameters: { type: 'object', properties: { query: { type: 'string', description: 'Optionaler Suchbegriff' } } },
+    async run({ query }) {
+      let all = await DB.all('notes'); const q = (query || '').toLowerCase();
+      if (q) all = all.filter(n => (n.title + ' ' + n.text).toLowerCase().includes(q));
+      all.sort((a, b) => b.ts - a.ts);
+      return all.length ? all.slice(0, 30).map(n => `## ${n.title} (${new Date(n.ts).toLocaleDateString('de-DE')})\n${n.text}`).join('\n\n') : 'Keine Notizen gefunden.';
+    },
+  },
+  run_js: {
+    label: 'JavaScript ausführen', description: 'Führt JavaScript in einer isolierten Sandbox aus (kein Zugriff auf die App oder ihre Daten). Mit console.log() ausgeben und/oder per return ein Ergebnis liefern. Für Berechnungen und Datenverarbeitung.',
+    parameters: { type: 'object', properties: { code: { type: 'string', description: 'JavaScript-Code (Funktionsrumpf, async/await erlaubt)' } }, required: ['code'] },
+    async run({ code }) {
+      const r = await runSandbox(String(code || ''));
+      const parts = [];
+      if (r.logs?.length) parts.push('Ausgabe:\n' + r.logs.join('\n'));
+      if (r.result !== undefined) parts.push('Ergebnis: ' + r.result);
+      if (r.error) parts.push('Fehler: ' + r.error);
+      if (!parts.length) parts.push('(keine Ausgabe – nutze console.log() oder return)');
+      return parts.join('\n\n');
+    },
+  },
+};
+
+/* ===== Dialoge ===== */
+function openModal({ title, body, buttons = [], wide = false, onClose }) {
+  const back = h('div', { class: 'mback' });
+  const close = () => { back.remove(); document.removeEventListener('keydown', onKey); onClose && onClose(); };
+  const onKey = e => { if (e.key === 'Escape') close(); };
+  document.addEventListener('keydown', onKey);
+  const box = h('div', { class: 'modal' + (wide ? ' wide' : '') },
+    h('div', { class: 'mh' }, h('b', null, title || ''), h('button', { class: 'ib', onclick: close }, ic('x'))),
+    h('div', { class: 'mb' }, body));
+  if (buttons.length) box.append(h('div', { class: 'mf' }, buttons.map(b => h('button', {
+    class: 'btn' + (b.primary ? ' primary' : '') + (b.danger ? ' danger' : ''),
+    onclick: async () => { const r = b.onClick ? await b.onClick() : undefined; if (r !== false) close(); },
+  }, b.label))));
+  back.append(box);
+  back.addEventListener('mousedown', e => { if (e.target === back) close(); });
+  document.body.append(back);
+  return { close, box };
+}
+function confirmDialog(title, body, okLabel = 'OK') {
+  return new Promise(res => {
+    let done = false; const fin = v => { if (!done) { done = true; res(v); } };
+    openModal({ title, body: typeof body === 'string' ? h('p', null, body) : body, onClose: () => fin(false), buttons: [{ label: 'Abbrechen', onClick: () => fin(false) }, { label: okLabel, primary: true, onClick: () => fin(true) }] });
+  });
+}
+function promptDialog(title, value = '', label = '') {
+  return new Promise(res => {
+    let done = false; const fin = v => { if (!done) { done = true; res(v); } };
+    const inp = h('input', { class: 'inp', value, onkeydown: e => { if (e.key === 'Enter') { fin(inp.value.trim() || null); m.close(); } } });
+    const m = openModal({ title, body: h('div', null, label ? h('p', { class: 'dim sm' }, label) : null, inp), onClose: () => fin(null), buttons: [{ label: 'Abbrechen', onClick: () => fin(null) }, { label: 'OK', primary: true, onClick: () => fin(inp.value.trim() || null) }] });
+    setTimeout(() => { inp.focus(); inp.select(); }, 50);
+  });
+}
+function actionSheet(title, items) {
+  const m = openModal({ title, body: h('div', null, items.map(it => h('button', { class: 'btn full' + (it.danger ? ' danger' : ''), style: { marginBottom: '.4rem', textAlign: 'left' }, onclick: () => { m.close(); it.fn(); } }, it.label))) });
+}
+function sw(val, on, small) {
+  return h('label', { class: 'sw' + (small ? ' sm' : ''), onclick: e => e.stopPropagation() }, h('input', { type: 'checkbox', checked: val, onchange: e => on(e.target.checked) }), h('span', { class: 'sl' }));
+}
+function select(options, value, on) {
+  const s = h('select', { class: 'inp', onchange: e => on(e.target.value) }, options.map(([v, l]) => h('option', { value: v }, l)));
+  s.value = value; return s;
+}
+function pickModel({ title = 'Modell wählen', current, multi = false, selected = [], onDone }) {
+  const q = h('input', { class: 'inp', placeholder: 'Modell suchen …' });
+  const list = h('div', { class: 'mlist' });
+  const sel = new Set(selected.map(refKey));
+  let modal;
+  const draw = () => {
+    list.innerHTML = ''; const f = q.value.toLowerCase();
+    for (const p of S.providers) {
+      if (!p.enabled) continue;
+      const ms = p.models.filter(m => (m.id + ' ' + p.name).toLowerCase().includes(f));
+      if (!ms.length) continue;
+      list.append(h('div', { class: 'mgroup' }, p.name));
+      for (const m of ms) {
+        const ref = { p: p.id, m: m.id }, k = refKey(ref);
+        const on = multi ? sel.has(k) : current && refKey(current) === k;
+        list.append(h('div', { class: 'mrow' + (on ? ' on' : ''), onclick: () => { if (multi) { sel.has(k) ? sel.delete(k) : sel.add(k); draw(); } else { modal.close(); onDone(ref); } } }, multi ? h('span', { class: 'cb' }, sel.has(k) ? '✓' : '') : null, h('span', null, m.id)));
+      }
+    }
+    if (!list.children.length) list.append(h('p', { class: 'dim pad' }, 'Keine Modelle gefunden. Aktiviere einen Anbieter und füge Modelle hinzu (Einstellungen → Anbieter).'));
+  };
+  q.oninput = draw; draw();
+  modal = openModal({ title, body: h('div', null, q, list), buttons: multi ? [{ label: 'Abbrechen' }, { label: 'Fertig', primary: true, onClick: () => onDone([...sel].map(parseKey)) }] : [{ label: 'Abbrechen' }] });
+}
+
+/* ===== Modell-/Agenten-Auflösung ===== */
+const provName = id => getProv(id)?.name || id;
+const modelLabel = r => r.m;
+function modelExists(r) { const p = r && getProv(r.p); return !!(p && p.enabled && p.models.some(m => m.id === r.m)); }
+function resolveModel(chat) {
+  const agent = getAgent(chat.agentId);
+  for (const r of [chat.model, agent?.model, S.settings.defaultModel]) if (modelExists(r)) return r;
+  for (const p of S.providers) if (p.enabled && p.models.length) return { p: p.id, m: p.models[0].id };
+  return null;
+}
+function ensureReady(chat) {
+  const ref = resolveModel(chat);
+  if (!ref) { toast('Kein Modell verfügbar – bitte zuerst einen Anbieter einrichten.'); S.view = 'settings'; S.tab = 'providers'; render(); return null; }
+  const p = getProv(ref.p);
+  if (!p.apiKey && !p.noKey) { toast('Für ' + p.name + ' fehlt der API-Schlüssel.'); S.view = 'settings'; S.tab = 'providers'; S.provSel = p.id; render(); return null; }
+  return ref;
+}
+
+/* ===== Chat-Engine ===== */
+function buildSystem(agent) {
+  let s = agent.prompt || '';
+  if (S.settings.dateInPrompt) s += `\n\nAktuelles Datum und Uhrzeit: ${new Date().toLocaleString('de-DE', { dateStyle: 'full', timeStyle: 'short' })}.`;
+  return s.trim();
+}
+const agentTools = a => (a.tools || []).filter(n => TOOLS[n]).map(n => ({ name: n, description: TOOLS[n].description, parameters: TOOLS[n].parameters }));
+function buildHistory(chat, agent) {
+  let ms = chat.messages.filter(m => !(m.role === 'assistant' && !m.content && !(m.toolCalls && m.toolCalls.length)));
+  const resIds = new Set(ms.filter(m => m.role === 'tool' && m.status !== 'running').map(m => m.toolCallId));
+  ms = ms.map(m => (m.role === 'assistant' && m.toolCalls?.length ? { ...m, toolCalls: m.toolCalls.filter(t => resIds.has(t.id)) } : m));
+  const callIds = new Set(ms.filter(m => m.role === 'assistant').flatMap(m => (m.toolCalls || []).map(t => t.id)));
+  ms = ms.filter(m => m.role !== 'tool' || (callIds.has(m.toolCallId) && m.status !== 'running'));
+  ms = ms.filter(m => !(m.role === 'assistant' && !m.content && !(m.toolCalls && m.toolCalls.length)));
+  const n = agent.contextCount || 30;
+  if (ms.length > n) ms = ms.slice(-n);
+  while (ms.length && ms[0].role !== 'user') ms.shift();
+  return ms;
+}
+const toolBrief = a => { const v = Object.values(a || {}).find(x => typeof x === 'string'); return v ? '· ' + (v.length > 40 ? v.slice(0, 40) + '…' : v).replace(/\s+/g, ' ') : ''; };
+async function runTool(tc, signal) {
+  const t0 = Date.now(), def = TOOLS[tc.name];
+  if (!def) return { text: 'Unbekanntes Werkzeug: ' + tc.name, error: true, ms: 0 };
+  if (S.settings.confirm?.[tc.name]) {
+    const ok = await confirmDialog('Werkzeug ausführen?', h('div', null, h('b', null, def.label), h('pre', { class: 'pre' }, JSON.stringify(tc.args, null, 2))), 'Ausführen');
+    if (!ok) return { text: 'Vom Nutzer abgelehnt.', error: true, ms: 0 };
+  }
+  try {
+    let out = await def.run(tc.args || {}, { signal });
+    if (typeof out !== 'string') out = JSON.stringify(out, null, 2);
+    if (out.length > MAX_TOOL_OUT) out = out.slice(0, MAX_TOOL_OUT) + '\n…[gekürzt]';
+    return { text: out || '(leer)', ms: Date.now() - t0 };
+  } catch (e) { return { text: 'Fehler: ' + errText(e), error: true, ms: Date.now() - t0 }; }
+}
+function liveBinder(am) {
+  let raf = 0;
+  const update = () => {
+    raf = 0;
+    const part = UI.msgs && UI.msgs.querySelector(`[data-mid="${am.id}"]`);
+    if (!part) return;
+    part.querySelector('.txt').innerHTML = md(am.content);
+    if (am.reasoning) { const th = part.querySelector('.think'); th.hidden = false; th.open = true; part.querySelector('.think-body').textContent = am.reasoning; }
+    if (S.stick) UI.msgs.scrollTop = UI.msgs.scrollHeight;
+  };
+  return { schedule() { if (!raf) raf = requestAnimationFrame(update); }, flush() { if (raf) cancelAnimationFrame(raf); update(); } };
+}
+const refresh = chat => { if (S.view === 'chat' && S.chatId === chat.id) renderMessages(); };
+async function runChat(chat) {
+  const agent = getAgent(chat.agentId), ref = resolveModel(chat), prov = getProv(ref.p);
+  const ctrl = new AbortController(); S.running.set(chat.id, ctrl); updateRunUI();
+  const tools = agentTools(agent), system = buildSystem(agent), maxSteps = S.settings.maxSteps || 8;
+  let finished = false;
+  try {
+    for (let step = 0; step < maxSteps; step++) {
+      if (ctrl.signal.aborted) { finished = true; break; }
+      const am = { id: uid(), role: 'assistant', content: '', reasoning: '', toolCalls: [], ts: Date.now(), model: ref };
+      chat.messages.push(am); refresh(chat);
+      const live = liveBinder(am), t0 = Date.now();
+      try {
+        const res = await callModel({ provider: prov, model: ref.m, system, messages: buildHistory(chat, agent), tools, temperature: agent.temperature, maxTokens: agent.maxTokens, signal: ctrl.signal, onText: t => { am.content += t; live.schedule(); }, onReasoning: t => { am.reasoning += t; live.schedule(); } });
+        am.toolCalls = res.toolCalls || []; am.usage = res.usage; am.finish = res.finish;
+      } catch (e) {
+        if (ctrl.signal.aborted) am.aborted = true; else { am.error = errText(e); console.error(e); }
+      }
+      am.ms = Date.now() - t0; live.flush();
+      if (am.aborted && !am.content && !am.reasoning && !am.toolCalls.length) chat.messages.splice(chat.messages.indexOf(am), 1);
+      if (am.error || am.aborted) { finished = true; break; }
+      if (!am.content && !am.toolCalls.length && !am.reasoning) am.error = 'Leere Antwort vom Modell.';
+      if (!am.toolCalls.length) { finished = true; break; }
+      saveChat(chat); refresh(chat);
+      for (const tc of am.toolCalls) {
+        const tm = { id: uid(), role: 'tool', toolCallId: tc.id, name: tc.name, content: '', status: 'running', ts: Date.now() };
+        chat.messages.push(tm); refresh(chat);
+        const out = await runTool(tc, ctrl.signal);
+        tm.content = out.text; tm.status = out.error ? 'error' : 'done'; tm.ms = out.ms;
+        refresh(chat);
+        if (ctrl.signal.aborted) break;
+      }
+      if (ctrl.signal.aborted) { finished = true; break; }
+    }
+    if (!finished) chat.messages.push({ id: uid(), role: 'assistant', content: '', error: `Maximale Anzahl Werkzeug-Schritte (${maxSteps}) erreicht. Schreibe „weiter“, um fortzufahren.`, ts: Date.now(), model: ref });
+  } finally {
+    for (const m of chat.messages) if (m.role === 'tool' && m.status === 'running') { m.status = 'error'; m.content = 'Abgebrochen'; }
+    S.running.delete(chat.id); chat.updatedAt = Date.now();
+    await saveChat(chat); updateRunUI(); refresh(chat); renderChatList();
+  }
+}
+function doSend() {
+  const chat = curChat(); if (!chat || S.running.has(chat.id)) return;
+  const text = S.draft.trim(); if (!text && !S.pending.length) return;
+  if (!ensureReady(chat)) return;
+  chat.messages.push({ id: uid(), role: 'user', content: text, attachments: S.pending.slice(), ts: Date.now() });
+  if (chat.title === 'Neuer Chat') chat.title = (text || S.pending[0]?.name || 'Chat').replace(/\s+/g, ' ').slice(0, 48);
+  chat.updatedAt = Date.now(); S.draft = ''; S.pending = []; S.stick = true;
+  UI.ta.value = ''; autosize(UI.ta); renderPending(); renderChatList(); renderMessages(); saveChat(chat); runChat(chat);
+}
+function regenerate(chat) {
+  if (S.running.has(chat.id)) return;
+  let i = chat.messages.length - 1; while (i >= 0 && chat.messages[i].role !== 'user') i--;
+  if (i < 0 || !ensureReady(chat)) return;
+  chat.messages.length = i + 1; S.stick = true; renderMessages(); runChat(chat);
+}
+async function editUser(chat, m) {
+  if (S.running.has(chat.id)) return toast('Bitte zuerst stoppen.');
+  const idx = chat.messages.indexOf(m);
+  if (idx < chat.messages.length - 1 && !(await confirmDialog('Nachricht bearbeiten', 'Alle Nachrichten ab hier werden entfernt und die Nachricht ins Eingabefeld geladen.', 'Bearbeiten'))) return;
+  chat.messages.length = idx; S.draft = m.content || ''; S.pending = (m.attachments || []).slice();
+  await saveChat(chat); renderMessages(); renderChatList(); UI.ta.value = S.draft; autosize(UI.ta); renderPending(); UI.ta.focus();
+}
+async function deleteMsgs(chat, ids) {
+  if (S.running.has(chat.id)) return toast('Bitte zuerst stoppen.');
+  chat.messages = chat.messages.filter(m => !ids.includes(m.id));
+  await saveChat(chat); renderMessages(); renderChatList();
+}
+function newChat(agentId) {
+  const cur = curChat();
+  if (cur && !cur.messages.length) { if (agentId) cur.agentId = agentId; S.view = 'chat'; S.panelOpen = false; render(); focusInput(); return cur; }
+  const c = { id: uid(), title: 'Neuer Chat', agentId: agentId || (cur && getAgent(cur.agentId).id) || S.agents[0].id, model: null, createdAt: Date.now(), updatedAt: Date.now(), messages: [] };
+  S.chats.unshift(c); S.chatId = c.id; S.view = 'chat'; S.panelOpen = false; S.stick = true; cleanupEmpty(); render(); focusInput(); return c;
+}
+function cleanupEmpty() { S.chats = S.chats.filter(c => c.messages.length || c.id === S.chatId); }
+function openChat(id) { S.chatId = id; S.view = 'chat'; S.panelOpen = false; S.stick = true; cleanupEmpty(); render(); }
+function delChat(c) {
+  S.running.get(c.id)?.abort(); S.chats = S.chats.filter(x => x.id !== c.id); DB.del('chats', c.id);
+  if (S.chatId === c.id) { const n = S.chats[0]; if (n) S.chatId = n.id; else { S.chatId = null; newChat(); return; } }
+  render();
+}
+function exportChatMd(c) {
+  const lines = [`# ${c.title}`, ''];
+  for (const m of c.messages) {
+    if (m.role === 'user') lines.push('## Du', '', m.content || '', '');
+    else if (m.role === 'assistant' && m.content) lines.push(`## ${m.model ? m.model.m : 'Assistent'}`, '', m.content, '');
+  }
+  download((c.title.replace(/[^\w\-äöüÄÖÜß ]+/g, '').trim() || 'chat') + '.md', lines.join('\n'), 'text/markdown');
+}
+function chatMenu(c) {
+  actionSheet(c.title, [
+    { label: 'Umbenennen', fn: async () => { const t = await promptDialog('Chat umbenennen', c.title); if (t) { c.title = t; await saveChat(c); renderChatList(); } } },
+    { label: 'Als Markdown exportieren', fn: () => exportChatMd(c) },
+    { label: 'Löschen', danger: true, fn: async () => { if (await confirmDialog('Chat löschen?', '„' + c.title + '“ wird endgültig gelöscht.', 'Löschen')) delChat(c); } },
+  ]);
+}
+
+/* ===== Anhänge ===== */
+function shrinkImage(file, max = 1600) {
+  return new Promise((res, rej) => {
+    const url = URL.createObjectURL(file), img = new Image();
+    img.onload = () => {
+      const k = Math.min(1, max / Math.max(img.width, img.height)), w = Math.round(img.width * k), hh = Math.round(img.height * k);
+      const c = document.createElement('canvas'); c.width = w; c.height = hh; const x = c.getContext('2d');
+      x.fillStyle = '#fff'; x.fillRect(0, 0, w, hh); x.drawImage(img, 0, 0, w, hh);
+      URL.revokeObjectURL(url); res(c.toDataURL('image/jpeg', 0.85));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); rej(new Error('Bild')); };
+    img.src = url;
+  });
+}
+async function addFiles(files) {
+  for (const f of files) {
+    try {
+      if (f.type.startsWith('image/')) S.pending.push({ type: 'image', name: f.name, dataUrl: await shrinkImage(f) });
+      else if (f.size < 2e6 && (f.type.startsWith('text/') || f.type === 'application/json' || /\.(txt|md|csv|json|js|ts|py|html|css|xml|yml|yaml|ini|log|sql|sh|c|cpp|h|java|cs|go|rs|php|tex)$/i.test(f.name))) {
+        let t = await f.text(); if (t.length > 200000) t = t.slice(0, 200000) + '\n…[gekürzt]';
+        S.pending.push({ type: 'text', name: f.name, text: t });
+      } else toast('Nicht unterstützt: ' + f.name);
+    } catch { toast('Fehler bei ' + f.name); }
+  }
+  renderPending();
+}
+function renderPending() {
+  if (!UI.pend) return; UI.pend.innerHTML = '';
+  S.pending.forEach((a, i) => UI.pend.append(h('div', { class: 'pchip' }, a.type === 'image' ? h('img', { src: a.dataUrl }) : '📄', h('span', null, a.name), h('button', { class: 'ib sm', onclick: () => { S.pending.splice(i, 1); renderPending(); } }, ic('x', 14)))));
+}
+function autosize(ta) { ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, innerHeight * 0.35) + 'px'; }
+function focusInput() { setTimeout(() => UI.ta && UI.ta.focus(), 60); }
+function updateRunUI() {
+  const b = UI.sendBtn; if (!b) return;
+  const run = S.running.has(S.chatId);
+  b.className = 'send' + (run ? ' stop' : ''); b.innerHTML = icon(run ? 'stop' : 'send', 18); b.title = run ? 'Stopp' : 'Senden';
+}
+
+/* ===== Rendering: Shell ===== */
+function render() {
+  const app = $('#app'); app.innerHTML = '';
+  app.append(buildRail());
+  if (S.view === 'chat') {
+    if (!curChat()) { const c = S.chats[0]; if (c) S.chatId = c.id; else { const n = { id: uid(), title: 'Neuer Chat', agentId: S.agents[0].id, model: null, createdAt: Date.now(), updatedAt: Date.now(), messages: [] }; S.chats.unshift(n); S.chatId = n.id; } }
+    app.append(buildChatPanel(), buildChatMain());
+    if (S.panelOpen) app.append(h('div', { class: 'scrim', onclick: () => { S.panelOpen = false; render(); } }));
+    renderMessages();
+  } else if (S.view === 'compare') app.append(buildCompare());
+  else if (S.view === 'agents') app.append(buildAgents());
+  else app.append(buildSettings());
+}
+function buildRail() {
+  const btn = (v, i, t) => h('button', { class: S.view === v ? 'active' : '', title: t, 'aria-label': t, onclick: () => { S.view = v; S.panelOpen = false; render(); } }, ic(i, 20), h('span', { class: 'rl' }, t));
+  return h('nav', { class: 'rail' }, h('div', { class: 'logo' }, '✦'), btn('chat', 'chat', 'Chat'), btn('compare', 'compare', 'Vergleich'), btn('agents', 'bot', 'Agenten'), h('div', { class: 'sp' }), btn('settings', 'settings', 'Einstellungen'));
+}
+function buildChatPanel() {
+  const list = h('div', { class: 'plist' }); UI.list = list;
+  const search = h('input', { class: 'inp', placeholder: 'Chats durchsuchen …', value: S.search, oninput: e => { S.search = e.target.value; renderChatList(); } });
+  const p = h('aside', { class: 'panel' + (S.panelOpen ? ' open' : '') },
+    h('div', { class: 'ph' }, h('b', null, 'Chats'), h('button', { class: 'ib', title: 'Neuer Chat', onclick: () => newChat() }, ic('plus'))),
+    h('div', { class: 'ps' }, search), list);
+  renderChatList(); return p;
+}
+function renderChatList() {
+  const list = UI.list; if (!list) return; list.innerHTML = '';
+  const q = S.search.toLowerCase();
+  const items = S.chats.filter(c => c.messages.length && (!q || (c.title + ' ' + c.messages.map(m => m.content || '').join(' ')).toLowerCase().includes(q)));
+  if (!items.length) list.append(h('p', { class: 'dim sm pad' }, q ? 'Keine Treffer.' : 'Noch keine Chats.'));
+  for (const c of items) {
+    list.append(h('div', { class: 'citem' + (c.id === S.chatId ? ' active' : ''), onclick: () => openChat(c.id) },
+      h('span', { class: 'ce' }, getAgent(c.agentId).emoji),
+      h('div', { class: 'ct' }, h('div', { class: 'cname' }, c.title), h('div', { class: 'cmeta' }, (S.running.has(c.id) ? '⏳ ' : '') + fmtDate(c.updatedAt))),
+      h('button', { class: 'ib sm', onclick: e => { e.stopPropagation(); chatMenu(c); } }, ic('dots'))));
+  }
+}
+function pickAgent(chat) {
+  const m = openModal({ title: 'Agent wählen', body: h('div', { class: 'mlist' }, S.agents.map(a => h('div', { class: 'mrow' + (a.id === chat.agentId ? ' on' : ''), onclick: async () => { chat.agentId = a.id; await saveChat(chat); m.close(); render(); } }, h('span', null, a.emoji), h('span', null, a.name)))), buttons: [{ label: 'Agenten verwalten', onClick: () => { S.view = 'agents'; render(); } }, { label: 'Schließen' }] });
+}
+function buildChatMain() {
+  const chat = curChat(), agent = getAgent(chat.agentId), model = resolveModel(chat);
+  const head = h('div', { class: 'chead' },
+    h('button', { class: 'ib mob', title: 'Chats', onclick: () => { S.panelOpen = true; render(); } }, ic('menu')),
+    h('button', { class: 'chip', onclick: () => pickAgent(chat) }, h('span', null, agent.emoji), h('span', { class: 'cl' }, agent.name), ic('chev', 14)),
+    h('div', { class: 'sp' }),
+    h('button', { class: 'chip', onclick: () => pickModel({ current: model, onDone: async r => { chat.model = r; await saveChat(chat); render(); } }) }, model ? [h('span', { class: 'cl' }, modelLabel(model)), h('span', { class: 'dim' }, provName(model.p))] : 'Modell wählen', ic('chev', 14)),
+    h('button', { class: 'ib mob', title: 'Neuer Chat', onclick: () => newChat() }, ic('plus')));
+  const msgs = h('div', { class: 'msgs style-' + S.settings.msgStyle }); UI.msgs = msgs;
+  msgs.addEventListener('scroll', () => { S.stick = msgs.scrollHeight - msgs.scrollTop - msgs.clientHeight < 90; });
+  return h('main', { class: 'main' }, head, msgs, buildComposer(chat));
+}
+function buildComposer(chat) {
+  const ta = h('textarea', { rows: 1, placeholder: 'Nachricht eingeben …', value: S.draft }); UI.ta = ta;
+  ta.addEventListener('input', () => { S.draft = ta.value; autosize(ta); });
+  ta.addEventListener('keydown', e => {
+    const k = S.settings.sendKey;
+    if (e.key === 'Enter' && !e.isComposing) {
+      if (k === 'enter' && !e.shiftKey) { e.preventDefault(); doSend(); }
+      else if (k === 'ctrl' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); doSend(); }
+    }
+  });
+  ta.addEventListener('paste', e => { const fs = [...(e.clipboardData?.files || [])]; if (fs.length) { e.preventDefault(); addFiles(fs); } });
+  const file = h('input', { type: 'file', multiple: true, hidden: true, accept: 'image/*,text/*,.md,.csv,.json,.js,.py,.html,.css,.xml,.yml,.yaml,.log,.sql,.sh', onchange: e => { addFiles([...e.target.files]); e.target.value = ''; } });
+  UI.pend = h('div', { class: 'pend' });
+  UI.sendBtn = h('button', { class: 'send', onclick: () => { const c = S.running.get(chat.id); if (c) c.abort(); else doSend(); } });
+  const box = h('div', { class: 'cbox' }, UI.pend, ta, h('div', { class: 'ctools' },
+    h('button', { class: 'ib', title: 'Datei oder Bild anhängen', onclick: () => file.click() }, ic('clip')), file,
+    h('button', { class: 'ib', title: 'Neuer Chat', onclick: () => newChat() }, ic('plus')),
+    h('span', { class: 'sp' }), UI.sendBtn));
+  // Fokus im Textfeld halten, wenn eine Taste der Werkzeugleiste gedrückt wird: sonst verschwindet die Tastatur,
+  // das Layout springt und der Tipp auf „Senden“ geht verloren (Handy).
+  box.querySelector('.ctools').addEventListener('mousedown', e => { if (e.target.closest('button')) e.preventDefault(); });
+  setTimeout(() => autosize(ta)); renderPending(); updateRunUI();
+  return h('div', { class: 'composer' }, h('div', { class: 'cin' }, box));
+}
+function emptyState() {
+  const chat = curChat(), agent = getAgent(chat?.agentId), anyProv = S.providers.some(p => p.enabled && p.models.length);
+  return h('div', { class: 'empty' }, h('div', { class: 'big' }, agent.emoji), h('h2', null, agent.name),
+    h('p', { class: 'dim' }, agent.prompt.length > 150 ? agent.prompt.slice(0, 150) + '…' : agent.prompt),
+    anyProv ? null : h('div', { class: 'banner' }, h('p', null, 'Noch kein Anbieter aktiv. Trage einen API-Schlüssel ein, dann kann es losgehen.'), h('button', { class: 'btn primary', onclick: () => { S.view = 'settings'; S.tab = 'providers'; render(); } }, 'Anbieter einrichten')));
+}
+const actBtn = (i, t, fn) => h('button', { class: 'ib sm', title: t, 'aria-label': t, onclick: fn }, ic(i, 16));
+function groupTurns(msgs) {
+  const turns = []; let cur = null;
+  for (const m of msgs) {
+    if (m.role === 'user') { turns.push({ kind: 'user', msg: m }); cur = null; }
+    else { if (!cur) { cur = { kind: 'ai', msgs: [] }; turns.push(cur); } cur.msgs.push(m); }
+  }
+  return turns;
+}
+function renderMessages() {
+  const box = UI.msgs; if (!box || !box.isConnected) return;
+  const chat = curChat(); box.innerHTML = '';
+  const inner = h('div', { class: 'msgs-in' }); box.append(inner);
+  if (!chat || !chat.messages.length) { inner.append(emptyState()); return; }
+  const turns = groupTurns(chat.messages), running = S.running.has(chat.id);
+  turns.forEach((t, i) => inner.append(t.kind === 'user' ? userTurn(chat, t.msg) : aiTurn(chat, t, i === turns.length - 1, running)));
+  if (S.stick) box.scrollTop = box.scrollHeight;
+}
+function userTurn(chat, m) {
+  const atts = (m.attachments || []).length ? h('div', { class: 'atts' }, m.attachments.map(a => (a.type === 'image' ? h('div', { class: 'att' }, h('img', { src: a.dataUrl, alt: a.name || '' })) : h('div', { class: 'att file' }, '📄 ' + a.name)))) : null;
+  return h('div', { class: 'turn user' }, h('div', { class: 'av' }, 'Du'), h('div', { class: 'tb' },
+    h('div', { class: 'tn' }, h('b', null, 'Du'), h('span', null, fmtTime(m.ts))), atts,
+    m.content ? h('div', { class: 'txt' }, h('div', { class: 'utx' }, m.content)) : null,
+    h('div', { class: 'acts' }, actBtn('copy', 'Kopieren', () => copyText(m.content || '')), actBtn('edit', 'Bearbeiten', () => editUser(chat, m)), actBtn('trash', 'Löschen', () => deleteMsgs(chat, [m.id])))));
+}
+function aiTurn(chat, t, isLast, running) {
+  const ams = t.msgs.filter(m => m.role === 'assistant'), last = ams[ams.length - 1], ref = last?.model, agent = getAgent(chat.agentId);
+  const toolMsgs = Object.fromEntries(t.msgs.filter(m => m.role === 'tool').map(m => [m.toolCallId, m]));
+  const live = running && isLast;
+  const parts = ams.map(m => aiPart(m, toolMsgs, live && m === last));
+  const tokens = ams.reduce((s, m) => s + (m.usage ? (m.usage.in || 0) + (m.usage.out || 0) : 0), 0), ms = ams.reduce((s, m) => s + (m.ms || 0), 0);
+  const meta = [ref ? provName(ref.p) : null, last ? fmtTime(last.ts) : null, tokens ? tokens + ' Tokens' : null, ms && !live ? (ms / 1000).toFixed(1) + ' s' : null].filter(Boolean).join(' · ');
+  const acts = live ? null : h('div', { class: 'acts' },
+    actBtn('copy', 'Kopieren', () => copyText(ams.map(m => m.content).filter(Boolean).join('\n\n'))),
+    isLast ? actBtn('refresh', 'Neu generieren', () => regenerate(chat)) : null,
+    actBtn('trash', 'Löschen', () => deleteMsgs(chat, t.msgs.map(m => m.id))));
+  return h('div', { class: 'turn ai' }, h('div', { class: 'av' }, agent.emoji), h('div', { class: 'tb' }, h('div', { class: 'tn' }, h('b', null, ref ? ref.m : agent.name), h('span', null, meta)), parts, acts));
+}
+function aiPart(m, toolMsgs, live) {
+  const th = h('details', { class: 'think', open: S.settings.thinkOpen || live ? true : null }, h('summary', null, 'Denkprozess'), h('div', { class: 'think-body' }, m.reasoning || ''));
+  th.hidden = !m.reasoning;
+  return h('div', { class: 'part' + (live ? ' live' : ''), 'data-mid': m.id }, th, h('div', { class: 'txt', html: md(m.content) }),
+    (m.toolCalls || []).map(tc => toolCard(tc, toolMsgs[tc.id])),
+    m.error ? h('div', { class: 'err' }, m.error) : null, m.aborted ? h('div', { class: 'note' }, '⏹ Abgebrochen') : null);
+}
+function toolCard(tc, tm) {
+  const def = TOOLS[tc.name], st = tm ? tm.status : 'running';
+  return h('details', { class: 'tool' },
+    h('summary', null, st === 'running' ? h('span', { class: 'spin' }) : ic(st === 'error' ? 'x' : 'tool', 15), h('b', null, def ? def.label : tc.name), h('span', { class: 'dim sm' }, toolBrief(tc.args)), tm && tm.ms ? h('span', { class: 'dim sm' }, (tm.ms / 1000).toFixed(1) + ' s') : null),
+    h('div', { class: 'tbody' }, h('div', { class: 'lbl' }, 'Eingabe'), h('pre', { class: 'pre' }, JSON.stringify(tc.args, null, 2)),
+      tm && tm.content ? [h('div', { class: 'lbl' }, 'Ergebnis'), h('pre', { class: 'pre' }, tm.content)] : null));
+}
+
+/* ===== Vergleich ===== */
+function buildCompare() {
+  const C = S.compare;
+  const prompt = h('textarea', { class: 'inp', placeholder: 'Frage oder Aufgabe – geht an alle gewählten Modelle …', value: C.prompt, oninput: e => { C.prompt = e.target.value; } });
+  const system = h('textarea', { class: 'inp', style: { minHeight: '4rem' }, placeholder: 'Optional: Systemprompt', value: C.system, oninput: e => { C.system = e.target.value; } });
+  const chips = h('div', { class: 'mchips' });
+  const drawChips = () => { chips.innerHTML = ''; C.models.forEach(r => chips.append(h('span', { class: 'mchip' }, r.m + ' · ' + provName(r.p), h('button', { onclick: () => { C.models = C.models.filter(x => refKey(x) !== refKey(r)); drawChips(); } }, '✕')))); if (!C.models.length) chips.append(h('span', { class: 'dim sm' }, 'Noch keine Modelle gewählt.')); };
+  drawChips();
+  const grid = h('div', { class: 'cmp' }); UI.cmpGrid = grid;
+  const runBtn = h('button', { class: 'btn primary', onclick: () => (C.ctrl ? stopCompare() : runCompare()) }, 'Vergleichen'); UI.cmpBtn = runBtn;
+  const page = h('div', { class: 'page' }, h('div', { class: 'page-in' }, h('h2', null, 'Modelle vergleichen'),
+    h('p', { class: 'dim sm' }, 'Dieselbe Frage geht gleichzeitig an mehrere Modelle (ohne Werkzeuge). Nichts wird als Chat gespeichert, außer du übernimmst eine Antwort.'),
+    h('div', { class: 'field' }, h('label', null, 'Modelle (bis zu 4)'), chips, h('button', { class: 'btn sm', onclick: () => pickModel({ title: 'Modelle wählen', multi: true, selected: C.models, onDone: l => { C.models = l.slice(0, 4); drawChips(); } }) }, '＋ Modelle wählen')),
+    h('div', { class: 'field' }, h('label', null, 'Systemprompt'), system),
+    h('div', { class: 'field' }, h('label', null, 'Prompt'), prompt),
+    h('div', { class: 'row' }, runBtn), grid));
+  drawCompare();
+  return h('main', { class: 'main' }, page);
+}
+function drawCompare() {
+  const C = S.compare, grid = UI.cmpGrid; if (!grid) return;
+  if (UI.cmpBtn) UI.cmpBtn.textContent = C.ctrl ? 'Stopp' : 'Vergleichen';
+  grid.innerHTML = '';
+  C.results.forEach((r, i) => grid.append(h('div', { class: 'col' },
+    h('div', { class: 'col-h' }, h('b', null, r.ref.m), h('span', { class: 'dim sm' }, provName(r.ref.p))),
+    h('div', { class: 'col-b' }, r.reasoning ? h('details', { class: 'think' }, h('summary', null, 'Denkprozess'), h('div', { class: 'think-body' }, r.reasoning)) : null, h('div', { class: 'txt', 'data-cmp': i, html: md(r.text) }), r.error ? h('div', { class: 'err' }, r.error) : null),
+    h('div', { class: 'col-f' }, h('span', null, r.status === 'run' ? '⏳ läuft …' : [(r.ms / 1000).toFixed(1) + ' s', r.usage ? ' · ' + (r.usage.in || 0) + '→' + (r.usage.out || 0) + ' Tokens' : ''].join('')),
+      h('span', null, h('button', { class: 'ib sm', title: 'Kopieren', onclick: () => copyText(r.text) }, ic('copy', 15)), h('button', { class: 'btn sm', onclick: () => cmpToChat(r) }, 'Als Chat'))))));
+}
+async function runCompare() {
+  const C = S.compare; if (!C.models.length) return toast('Bitte zuerst Modelle wählen.'); if (!C.prompt.trim()) return toast('Bitte einen Prompt eingeben.');
+  const ctrl = new AbortController(); C.ctrl = ctrl;
+  C.results = C.models.map(ref => ({ ref, text: '', reasoning: '', status: 'run', t0: Date.now(), ms: 0 })); drawCompare();
+  let raf = 0; const upd = () => { raf = 0; C.results.forEach((r, i) => { const el = UI.cmpGrid?.querySelector(`[data-cmp="${i}"]`); if (el) el.innerHTML = md(r.text); }); };
+  const sched = () => { if (!raf) raf = requestAnimationFrame(upd); };
+  await Promise.all(C.results.map(async r => {
+    const p = getProv(r.ref.p);
+    try {
+      if (!p.apiKey && !p.noKey) throw new Error('API-Schlüssel für ' + p.name + ' fehlt.');
+      const res = await callModel({ provider: p, model: r.ref.m, system: C.system.trim(), messages: [{ role: 'user', content: C.prompt }], tools: [], temperature: null, signal: ctrl.signal, onText: t => { r.text += t; sched(); }, onReasoning: t => { r.reasoning += t; sched(); } });
+      r.usage = res.usage; r.status = 'done';
+    } catch (e) { r.status = 'done'; if (!ctrl.signal.aborted) r.error = errText(e); }
+    r.ms = Date.now() - r.t0;
+  }));
+  C.ctrl = null; drawCompare();
+}
+function stopCompare() { S.compare.ctrl?.abort(); }
+async function cmpToChat(r) {
+  const c = { id: uid(), title: S.compare.prompt.replace(/\s+/g, ' ').slice(0, 48), agentId: S.agents[0].id, model: r.ref, createdAt: Date.now(), updatedAt: Date.now(), messages: [] };
+  c.messages.push({ id: uid(), role: 'user', content: S.compare.prompt, ts: Date.now() }, { id: uid(), role: 'assistant', content: r.text, reasoning: r.reasoning, toolCalls: [], ts: Date.now(), model: r.ref, usage: r.usage, ms: r.ms });
+  S.chats.unshift(c); await saveChat(c); S.chatId = c.id; S.view = 'chat'; render();
+}
+
+/* ===== Agenten ===== */
+function buildAgents() {
+  const cards = S.agents.map(a => h('div', { class: 'card' }, h('div', { class: 'em' }, a.emoji), h('b', null, a.name), h('div', { class: 'desc' }, a.prompt),
+    h('div', { class: 'badges' }, (a.tools || []).map(t => h('span', { class: 'badge' }, TOOLS[t]?.label || t)), a.model ? h('span', { class: 'badge' }, '⚙ ' + a.model.m) : null),
+    h('div', { class: 'row' }, h('button', { class: 'btn sm primary', onclick: () => newChat(a.id) }, 'Chat starten'), h('button', { class: 'btn sm', onclick: () => editAgent(a) }, 'Bearbeiten'))));
+  return h('main', { class: 'main' }, h('div', { class: 'page' }, h('div', { class: 'page-in' },
+    h('div', { class: 'row' }, h('h2', { style: { flex: 1 } }, 'Agenten'), h('button', { class: 'btn primary', onclick: () => editAgent(null) }, '＋ Neuer Agent')),
+    h('p', { class: 'dim sm' }, 'Ein Agent = Systemprompt + Werkzeuge + optional festes Modell. Bei Werkzeugen entscheidet das Modell selbst, wann es sie nutzt, und wiederholt das bis zur fertigen Antwort.'),
+    h('div', { class: 'cards' }, cards))));
+}
+function editAgent(a) {
+  const isNew = !a; const d = a ? structuredClone(a) : { id: 'ag_' + uid(), name: '', emoji: '🤖', prompt: '', tools: [], model: null, temperature: null, maxTokens: null, contextCount: 30 };
+  const name = h('input', { class: 'inp', value: d.name, placeholder: 'Name' });
+  const emoji = h('input', { class: 'inp', value: d.emoji, style: { width: '4.5rem', textAlign: 'center' }, maxlength: 4 });
+  const prompt = h('textarea', { class: 'inp', style: { minHeight: '10rem' }, value: d.prompt, placeholder: 'Systemprompt: Rolle, Regeln, Stil …' });
+  const modelBtn = h('button', { class: 'btn', onclick: () => pickModel({ current: d.model, onDone: r => { d.model = r; drawModel(); } }) });
+  const drawModel = () => { modelBtn.textContent = d.model ? d.model.m + ' · ' + provName(d.model.p) : 'Standardmodell verwenden'; };
+  drawModel();
+  const tempOut = h('span', { class: 'rv' }, d.temperature == null ? 'Standard' : d.temperature);
+  const temp = h('input', { type: 'range', min: 0, max: 2, step: 0.1, value: d.temperature ?? 1, disabled: d.temperature == null, oninput: e => { d.temperature = +e.target.value; tempOut.textContent = d.temperature; } });
+  const tempDef = h('input', { type: 'checkbox', checked: d.temperature == null, onchange: e => { if (e.target.checked) { d.temperature = null; temp.disabled = true; tempOut.textContent = 'Standard'; } else { d.temperature = +temp.value; temp.disabled = false; tempOut.textContent = d.temperature; } } });
+  const maxTok = h('input', { class: 'inp', type: 'number', min: 0, placeholder: 'Standard', value: d.maxTokens || '', style: { width: '9rem' } });
+  const ctx = h('input', { class: 'inp', type: 'number', min: 2, max: 200, value: d.contextCount || 30, style: { width: '9rem' } });
+  const tools = h('div', { class: 'checks' }, Object.entries(TOOLS).map(([k, t]) => h('label', { title: t.description }, h('input', { type: 'checkbox', checked: d.tools.includes(k), onchange: e => { d.tools = e.target.checked ? [...d.tools, k] : d.tools.filter(x => x !== k); } }), t.label)));
+  const body = h('div', null,
+    h('div', { class: 'field row' }, h('div', null, h('label', { class: 'dim sm' }, 'Symbol'), emoji), h('div', { style: { flex: 1 } }, h('label', { class: 'dim sm' }, 'Name'), name)),
+    h('div', { class: 'field' }, h('label', null, 'Systemprompt'), prompt),
+    h('div', { class: 'field' }, h('label', null, 'Festes Modell (optional)'), h('div', { class: 'row' }, modelBtn, h('button', { class: 'btn sm', onclick: () => { d.model = null; drawModel(); } }, 'Zurücksetzen'))),
+    h('div', { class: 'field' }, h('label', null, 'Werkzeuge'), tools),
+    h('div', { class: 'field' }, h('label', null, 'Temperatur'), h('div', { class: 'rng' }, temp, tempOut), h('label', { class: 'row sm dim' }, tempDef, 'Standard des Anbieters')),
+    h('div', { class: 'field row' }, h('div', null, h('label', { class: 'dim sm' }, 'Max. Antwort-Tokens'), maxTok), h('div', null, h('label', { class: 'dim sm' }, 'Kontext (Nachrichten)'), ctx)));
+  const buttons = [{ label: 'Abbrechen' }];
+  if (!isNew && S.agents.length > 1) buttons.unshift({ label: 'Löschen', danger: true, onClick: async () => { if (!(await confirmDialog('Agent löschen?', '„' + a.name + '“ wird gelöscht.', 'Löschen'))) return false; S.agents = S.agents.filter(x => x.id !== a.id); await saveAgents(); render(); } });
+  if (!isNew) buttons.splice(1, 0, { label: 'Duplizieren', onClick: async () => { const c = structuredClone(a); c.id = 'ag_' + uid(); c.name += ' (Kopie)'; S.agents.push(c); await saveAgents(); render(); } });
+  buttons.push({ label: 'Speichern', primary: true, onClick: async () => {
+    if (!name.value.trim()) { toast('Bitte einen Namen eingeben.'); return false; }
+    Object.assign(d, { name: name.value.trim(), emoji: emoji.value.trim() || '🤖', prompt: prompt.value, maxTokens: +maxTok.value > 0 ? +maxTok.value : null, contextCount: Math.max(2, +ctx.value || 30) });
+    if (isNew) S.agents.push(d); else S.agents[S.agents.findIndex(x => x.id === a.id)] = d;
+    await saveAgents(); render();
+  } });
+  openModal({ title: isNew ? 'Neuer Agent' : 'Agent bearbeiten', body, wide: true, buttons });
+}
+
+/* ===== Einstellungen ===== */
+const TABS = [['providers', 'Anbieter'], ['appearance', 'Darstellung'], ['chat', 'Chat'], ['tools', 'Werkzeuge'], ['data', 'Daten'], ['about', 'Info']];
+function buildSettings() {
+  const tabs = h('div', { class: 'tabs' }, TABS.map(([k, l]) => h('button', { class: S.tab === k ? 'on' : '', onclick: () => { S.tab = k; render(); } }, l)));
+  const content = { providers: settingsProviders, appearance: settingsAppearance, chat: settingsChat, tools: settingsTools, data: settingsData, about: settingsAbout }[S.tab]();
+  return h('main', { class: 'main' }, h('div', { class: 'page' }, h('div', { class: 'page-in' }, h('h2', null, 'Einstellungen'), tabs, content)));
+}
+const srow = (label, control, hint) => h('div', { class: 'srow' }, h('div', { class: 'sl-l' }, h('div', null, label), hint ? h('div', { class: 'dim sm' }, hint) : null), h('div', { class: 'sl-c' }, control));
+function range(k, min, max, step, unit, onChange) {
+  const st = S.settings, out = h('span', { class: 'rv' }, st[k] + unit);
+  return h('div', { class: 'rng' }, h('input', { type: 'range', min, max, step, value: st[k], oninput: e => { st[k] = +e.target.value; out.textContent = st[k] + unit; onChange(); } }), out);
+}
+function seg(k, opts, onChange) {
+  const st = S.settings; const wrap = h('div', { class: 'seg' });
+  const draw = () => { wrap.innerHTML = ''; opts.forEach(([v, l]) => wrap.append(h('button', { class: st[k] === v ? 'on' : '', onclick: () => { st[k] = v; onChange(); draw(); } }, l))); };
+  draw(); return wrap;
+}
+function settingsProviders() {
+  const wrap = h('div', { class: 'prov' }), listEl = h('div', { class: 'prov-list' }), detail = h('div', { class: 'prov-detail' });
+  const drawList = () => {
+    listEl.innerHTML = '';
+    for (const p of S.providers) listEl.append(h('div', { class: 'prow' + (S.provSel === p.id ? ' active' : ''), onclick: () => { S.provSel = p.id; drawList(); drawDetail(); } },
+      h('span', { class: 'pdot' + (p.enabled ? ' on' : '') }), h('span', { class: 'pname' }, p.name), sw(p.enabled, v => { p.enabled = v; saveProviders(); drawList(); drawDetail(); }, true)));
+    listEl.append(h('button', { class: 'btn', onclick: addCustomProvider }, '＋ Eigener Anbieter'));
+  };
+  const drawDetail = () => {
+    const p = getProv(S.provSel) || S.providers[0]; S.provSel = p.id; detail.innerHTML = '';
+    const key = h('input', { class: 'inp', type: 'password', value: p.apiKey, placeholder: p.noKey ? '(optional)' : 'API-Schlüssel', autocomplete: 'off', oninput: e => { p.apiKey = e.target.value.trim(); dSaveProviders(); } });
+    const status = h('div', { class: 'status' });
+    const chips = h('div', { class: 'mchips' });
+    const drawChips = () => { chips.innerHTML = ''; p.models.forEach(m => chips.append(h('span', { class: 'mchip' }, m.id, h('button', { title: 'Entfernen', onclick: () => { p.models = p.models.filter(x => x.id !== m.id); saveProviders(); drawChips(); } }, '✕')))); if (!p.models.length) chips.append(h('span', { class: 'dim sm' }, 'Keine Modelle – „Modelle laden“ oder unten eintragen.')); };
+    drawChips();
+    const add = h('input', { class: 'inp', placeholder: 'Modellname eintragen, Enter drücken', onkeydown: e => { if (e.key === 'Enter' && e.target.value.trim()) { const id = e.target.value.trim(); if (!p.models.some(m => m.id === id)) p.models.push({ id }); e.target.value = ''; saveProviders(); drawChips(); } } });
+    detail.append(...[
+      h('div', { class: 'row' }, h('h3', { style: { flex: 1 } }, p.name), sw(p.enabled, v => { p.enabled = v; saveProviders(); drawList(); })),
+      !p.builtin ? h('div', { class: 'field' }, h('label', null, 'Name'), h('input', { class: 'inp', value: p.name, oninput: e => { p.name = e.target.value; dSaveProviders(); } })) : null,
+      !p.builtin ? h('div', { class: 'field' }, h('label', null, 'Schnittstelle'), select([['openai', 'OpenAI-kompatibel'], ['anthropic', 'Anthropic'], ['gemini', 'Google Gemini']], p.type, v => { p.type = v; saveProviders(); })) : null,
+      h('div', { class: 'field' }, h('label', null, 'API-Schlüssel'), h('div', { class: 'row' }, key, h('button', { class: 'btn', onclick: e => { key.type = key.type === 'password' ? 'text' : 'password'; e.currentTarget.innerHTML = icon('eye', 16); } }, ic('eye', 16)))),
+      h('div', { class: 'field' }, h('label', null, 'API-Adresse'), h('input', { class: 'inp', value: p.baseUrl, oninput: e => { p.baseUrl = e.target.value.trim(); dSaveProviders(); } }), h('div', { class: 'dim sm', style: { marginTop: '.3rem' } }, 'Ende mit # = Adresse genau so verwenden. Anfragen gehen direkt von deinem Gerät an den Anbieter.')),
+      !p.builtin || p.noKey ? h('div', { class: 'srow' }, h('div', { class: 'sl-l' }, 'Ohne API-Schlüssel nutzbar'), h('div', { class: 'sl-c' }, sw(!!p.noKey, v => { p.noKey = v; saveProviders(); }))) : null,
+      h('div', { class: 'row' },
+        h('button', { class: 'btn', onclick: async e => { const b = e.currentTarget; b.disabled = true; status.className = 'status'; status.textContent = 'Prüfe …'; const r = await testProvider(p); b.disabled = false; status.className = 'status ' + (r.ok ? 'ok' : 'bad'); status.textContent = r.msg; } }, 'Verbindung prüfen'),
+        h('button', { class: 'btn', onclick: () => loadModelsDialog(p, drawDetail) }, 'Modelle laden')),
+      status,
+      h('div', { class: 'field' }, h('label', null, 'Modelle'), chips, add),
+      p.builtin ? h('button', { class: 'btn sm', onclick: () => { const pr = PRESET_PROVIDERS.find(x => x.id === p.id); p.baseUrl = pr.baseUrl; p.type = pr.type; saveProviders(); drawDetail(); toast('Adresse zurückgesetzt'); } }, 'Adresse zurücksetzen') : h('button', { class: 'btn danger', onclick: async () => { if (await confirmDialog('Anbieter löschen?', '„' + p.name + '“ wird entfernt.', 'Löschen')) { S.providers = S.providers.filter(x => x.id !== p.id); S.provSel = null; await saveProviders(); render(); } } }, 'Anbieter löschen')].filter(Boolean));
+  };
+  drawList(); drawDetail(); wrap.append(listEl, detail); return wrap;
+}
+function addCustomProvider() {
+  const name = h('input', { class: 'inp', placeholder: 'z. B. Mein Server' }), url = h('input', { class: 'inp', placeholder: 'https://…/v1' });
+  let type = 'openai';
+  openModal({ title: 'Eigener Anbieter', body: h('div', null, h('div', { class: 'field' }, h('label', null, 'Name'), name), h('div', { class: 'field' }, h('label', null, 'Schnittstelle'), select([['openai', 'OpenAI-kompatibel'], ['anthropic', 'Anthropic'], ['gemini', 'Google Gemini']], type, v => { type = v; })), h('div', { class: 'field' }, h('label', null, 'API-Adresse'), url)),
+    buttons: [{ label: 'Abbrechen' }, { label: 'Hinzufügen', primary: true, onClick: async () => {
+      if (!name.value.trim() || !url.value.trim()) { toast('Name und Adresse nötig.'); return false; }
+      const p = { id: 'c_' + uid(), name: name.value.trim(), type, baseUrl: url.value.trim(), apiKey: '', enabled: true, models: [], builtin: false };
+      S.providers.push(p); S.provSel = p.id; await saveProviders(); render();
+    } }] });
+}
+async function loadModelsDialog(p, redraw) {
+  toast('Lade Modelle …');
+  let ids; try { ids = await listModels(p); } catch (e) { return toast(errText(e).slice(0, 160)); }
+  const sel = new Set(p.models.map(m => m.id));
+  const q = h('input', { class: 'inp', placeholder: ids.length + ' Modelle – suchen …' }), list = h('div', { class: 'mlist' });
+  const draw = () => { list.innerHTML = ''; const f = q.value.toLowerCase(); ids.filter(i => i.toLowerCase().includes(f)).forEach(id => list.append(h('div', { class: 'mrow' + (sel.has(id) ? ' on' : ''), onclick: () => { sel.has(id) ? sel.delete(id) : sel.add(id); draw(); } }, h('span', { class: 'cb' }, sel.has(id) ? '✓' : ''), id))); };
+  q.oninput = draw; draw();
+  openModal({ title: 'Modelle von ' + p.name, body: h('div', null, q, list), buttons: [{ label: 'Abbrechen' }, { label: 'Übernehmen', primary: true, onClick: () => { p.models = [...p.models.filter(m => !ids.includes(m.id)), ...ids.filter(i => sel.has(i)).map(id => ({ id }))]; saveProviders(); redraw(); } }] });
+}
+function settingsAppearance() {
+  const st = S.settings, apply = () => { applyAppearance(); dSaveSettings(); };
+  const swatches = h('div', { class: 'swatches' });
+  const drawSw = () => { swatches.innerHTML = ''; ['#00b96b', '#1677ff', '#7c3aed', '#e5484d', '#f59e0b', '#0ea5a4', '#475569'].forEach(c => swatches.append(h('button', { class: 'swatch' + (st.accent === c ? ' on' : ''), style: { background: c }, 'aria-label': c, onclick: () => { st.accent = c; apply(); drawSw(); } }))); swatches.append(h('input', { type: 'color', value: st.accent, oninput: e => { st.accent = e.target.value; apply(); } })); };
+  drawSw();
+  const customFont = h('input', { class: 'inp', placeholder: 'z. B. "Segoe UI", Arial', value: st.customFont, oninput: e => { st.customFont = e.target.value; apply(); } });
+  const fontFile = h('input', { type: 'file', accept: '.ttf,.otf,.woff,.woff2', hidden: true, onchange: async e => {
+    const f = e.target.files[0]; if (!f) return; const buf = await f.arrayBuffer();
+    if (await registerFont(buf)) { await DB.put('kv', { name: f.name, buf }, 'fontFile'); st.fontFamily = 'file'; st.fontFileName = f.name; apply(); render(); toast('Schrift geladen'); } else toast('Schriftdatei nicht lesbar');
+  } });
+  return h('div', null,
+    srow('Farbschema', seg('theme', [['auto', 'System'], ['light', 'Hell'], ['dark', 'Dunkel']], apply)),
+    srow('Akzentfarbe', swatches),
+    srow('Schriftgröße Oberfläche', range('uiFont', 12, 22, 1, ' px', apply), 'Skaliert Menüs, Listen und Einstellungen.'),
+    srow('Schriftgröße Chat', range('chatFont', 12, 28, 1, ' px', apply), 'Nur der Nachrichtentext.'),
+    srow('Schriftgröße Code', range('codeFont', 10, 22, 1, ' px', apply)),
+    srow('Zeilenabstand', range('lineHeight', 1.2, 2.2, 0.05, '', apply)),
+    srow('Schriftart', select([['system', 'System (Standard)'], ['serif', 'Serif (Georgia)'], ['mono', 'Monospace'], ['rounded', 'Rund (Trebuchet)'], ['hand', 'Handschrift'], ['custom', 'Eigene (CSS-Name)'], ['file', 'Aus Datei' + (st.fontFileName ? ' – ' + st.fontFileName : '')]], st.fontFamily, v => { st.fontFamily = v; apply(); render(); })),
+    st.fontFamily === 'custom' ? srow('CSS-Schriftname', customFont, 'Muss auf dem Gerät installiert sein.') : null,
+    srow('Schriftdatei laden', h('div', null, h('button', { class: 'btn', onclick: () => fontFile.click() }, '.ttf / .otf / .woff2 wählen'), fontFile), 'Wird im Browser gespeichert; funktioniert auch offline.'),
+    srow('Nachrichtenstil', seg('msgStyle', [['list', 'Liste'], ['bubble', 'Blasen']], () => { apply(); dSaveSettings(); })),
+    srow('Inhaltsbreite', seg('contentWidth', [['narrow', 'Schmal'], ['normal', 'Normal'], ['wide', 'Breit'], ['full', 'Voll']], apply)),
+    h('div', { class: 'sample' }, h('b', null, 'Vorschau'), h('p', null, 'So sieht ein Antworttext aus. Ein zweiter Satz zeigt den Zeilenabstand, wenn der Text länger wird.'), h('code', null, 'const beispiel = 42;')),
+    h('button', { class: 'btn', onclick: () => { Object.assign(st, { theme: 'auto', accent: '#00b96b', uiFont: 16, chatFont: 16, codeFont: 13, lineHeight: 1.6, fontFamily: 'system', contentWidth: 'normal', msgStyle: 'list' }); apply(); render(); } }, 'Darstellung zurücksetzen'));
+}
+function settingsChat() {
+  const st = S.settings, save = () => dSaveSettings();
+  const dm = h('button', { class: 'btn', onclick: () => pickModel({ current: st.defaultModel, onDone: r => { st.defaultModel = r; saveSettings(); render(); } }) }, st.defaultModel ? st.defaultModel.m + ' · ' + provName(st.defaultModel.p) : 'Automatisch (erstes verfügbares)');
+  return h('div', null,
+    srow('Standardmodell', dm, 'Wird genutzt, wenn Chat und Agent kein Modell festlegen.'),
+    srow('Senden mit', select([['enter', 'Enter (Umschalt+Enter = Zeilenumbruch)'], ['ctrl', 'Strg+Enter'], ['button', 'Nur Senden-Taste']], st.sendKey, v => { st.sendKey = v; save(); })),
+    srow('Max. Werkzeug-Schritte pro Antwort', h('input', { class: 'inp', type: 'number', min: 1, max: 25, value: st.maxSteps, style: { width: '6rem' }, oninput: e => { st.maxSteps = Math.max(1, Math.min(25, +e.target.value || 8)); save(); } }), 'Schutz vor Endlosschleifen der Agenten.'),
+    srow('Datum im Systemprompt', sw(st.dateInPrompt, v => { st.dateInPrompt = v; save(); }), 'Das Modell kennt dann das heutige Datum.'),
+    srow('Denkprozess immer aufgeklappt', sw(st.thinkOpen, v => { st.thinkOpen = v; save(); }), 'Für Modelle, die ihre Überlegungen mitsenden (z. B. deepseek-reasoner).'));
+}
+function settingsTools() {
+  const st = S.settings, save = () => dSaveSettings();
+  const notesBox = h('div'); const drawNotes = async () => {
+    notesBox.innerHTML = ''; const ns = (await DB.all('notes')).sort((a, b) => b.ts - a.ts);
+    if (!ns.length) notesBox.append(h('p', { class: 'dim sm' }, 'Noch keine Notizen. Der Notiz-Agent legt sie hier ab.'));
+    ns.forEach(n => notesBox.append(h('details', { class: 'tool' }, h('summary', null, h('b', null, n.title), h('span', { class: 'dim sm' }, new Date(n.ts).toLocaleDateString('de-DE'))), h('div', { class: 'tbody' }, h('pre', { class: 'pre' }, n.text), h('button', { class: 'btn sm danger', style: { marginTop: '.4rem' }, onclick: async () => { await DB.del('notes', n.id); drawNotes(); } }, 'Löschen')))));
+  }; drawNotes();
+  return h('div', null,
+    h('h3', null, 'Vor Ausführung fragen'), h('p', { class: 'dim sm' }, 'Welche Werkzeuge erst nach deiner Bestätigung laufen. Welche Agenten welche Werkzeuge nutzen, stellst du unter „Agenten“ ein.'),
+    Object.entries(TOOLS).map(([k, t]) => srow(t.label, sw(!!st.confirm[k], v => { st.confirm[k] = v; save(); }), t.description.slice(0, 90))),
+    h('h3', { style: { marginTop: '1.4rem' } }, 'Websuche'),
+    srow('Anbieter', select([['tavily', 'Tavily (Schlüssel)'], ['jina', 'Jina (Schlüssel)'], ['searx', 'SearXNG (eigene Adresse)']], st.search.provider, v => { st.search.provider = v; save(); render(); })),
+    st.search.provider === 'tavily' ? srow('Tavily-Schlüssel', h('input', { class: 'inp', type: 'password', value: st.search.tavilyKey, oninput: e => { st.search.tavilyKey = e.target.value.trim(); save(); } })) : null,
+    st.search.provider === 'jina' ? srow('Jina-Schlüssel', h('input', { class: 'inp', type: 'password', value: st.search.jinaKey, oninput: e => { st.search.jinaKey = e.target.value.trim(); save(); } })) : null,
+    st.search.provider === 'searx' ? srow('SearXNG-Adresse', h('input', { class: 'inp', value: st.search.searxUrl, placeholder: 'https://…', oninput: e => { st.search.searxUrl = e.target.value.trim(); save(); } })) : null,
+    h('h3', { style: { marginTop: '1.4rem' } }, 'Webseiten lesen'),
+    srow('Reader-Proxy', h('input', { class: 'inp', value: st.proxy, oninput: e => { st.proxy = e.target.value.trim(); save(); } }), 'Wird genutzt, wenn eine Seite den direkten Abruf aus dem Browser blockiert. {url} wird ersetzt. Leer lassen = nur direkt. Hinweis: Der Proxy sieht die abgerufenen Adressen.'),
+    h('h3', { style: { marginTop: '1.4rem' } }, 'Gespeicherte Notizen'), notesBox);
+}
+function settingsData() {
+  let withKeys = false; const st = S.settings;
+  const imp = h('input', { type: 'file', accept: '.json,application/json', hidden: true, onchange: async e => { const f = e.target.files[0]; e.target.value = ''; if (f) importAll(f); } });
+  const usage = h('span', { class: 'dim sm' }); navigator.storage?.estimate?.().then(e => { usage.textContent = `Belegt: ${(e.usage / 1048576).toFixed(1)} MB von ca. ${(e.quota / 1073741824).toFixed(1)} GB`; });
+  return h('div', null,
+    srow('Backup exportieren', h('div', null, h('label', { class: 'row sm dim', style: { marginBottom: '.4rem' } }, h('input', { type: 'checkbox', onchange: e => { withKeys = e.target.checked; } }), 'API-Schlüssel mitexportieren'), h('button', { class: 'btn', onclick: () => exportAll(withKeys) }, 'Backup speichern (.json)')), 'Chats, Agenten, Anbieter, Einstellungen, Notizen.'),
+    srow('Backup importieren', h('div', null, h('button', { class: 'btn', onclick: () => imp.click() }, 'Datei wählen'), imp), 'Fügt zusammen; vorhandene Einträge mit gleicher ID werden überschrieben.'),
+    srow('Speicher', h('div', null, usage, h('br'), h('button', { class: 'btn sm', onclick: async () => toast((await navigator.storage?.persist?.()) ? 'Dauerhafter Speicher aktiv' : 'Vom Browser nicht gewährt') }, 'Dauerhaften Speicher anfragen')), 'Verhindert, dass der Browser Daten bei Platzmangel löscht.'),
+    srow('Alle Chats löschen', h('button', { class: 'btn danger', onclick: async () => { if (await confirmDialog('Alle Chats löschen?', 'Das kann nicht rückgängig gemacht werden.', 'Löschen')) { S.running.forEach(c => c.abort()); await DB.clear('chats'); S.chats = []; S.chatId = null; newChat(); S.view = 'settings'; render(); } } }, 'Chats löschen')),
+    srow('Alles zurücksetzen', h('button', { class: 'btn danger', onclick: async () => { if (await confirmDialog('Wirklich alles löschen?', 'Chats, Schlüssel, Agenten, Notizen und Einstellungen werden entfernt.', 'Alles löschen')) { for (const s of ['kv', 'chats', 'notes']) await DB.clear(s); location.reload(); } } }, 'Alles löschen')));
+}
+async function exportAll(withKeys) {
+  const settings = structuredClone(S.settings); if (!withKeys) { settings.search.tavilyKey = ''; settings.search.jinaKey = ''; }
+  const data = { app: 'ki-studio', version: 1, exported: new Date().toISOString(), settings, providers: S.providers.map(p => (withKeys ? p : { ...p, apiKey: '' })), agents: S.agents, chats: S.chats.filter(c => c.messages.length), notes: await DB.all('notes') };
+  download('ki-studio-backup-' + new Date().toISOString().slice(0, 10) + '.json', JSON.stringify(data));
+}
+async function importAll(file) {
+  try {
+    const d = JSON.parse(await file.text()); if (d.app !== 'ki-studio') throw new Error('Keine KI-Studio-Sicherung.');
+    if (!(await confirmDialog('Backup importieren?', 'Vorhandene Einträge mit gleicher ID werden überschrieben.', 'Importieren'))) return;
+    if (d.settings) await DB.put('kv', deepMerge(structuredClone(S.settings), d.settings), 'settings');
+    if (d.providers) { const cur = S.providers; for (const p of d.providers) { const ex = cur.find(x => x.id === p.id); if (ex) Object.assign(ex, p, { apiKey: p.apiKey || ex.apiKey }); else cur.push(p); } await DB.put('kv', cur, 'providers'); }
+    if (d.agents) await DB.put('kv', d.agents, 'agents');
+    for (const c of d.chats || []) await DB.put('chats', c);
+    for (const n of d.notes || []) await DB.put('notes', n);
+    location.reload();
+  } catch (e) { toast('Import fehlgeschlagen: ' + e.message); }
+}
+function settingsAbout() {
+  const standalone = matchMedia('(display-mode: standalone)').matches;
+  return h('div', null, h('h3', null, 'Mein KI-Studio ' + VERSION),
+    h('p', { class: 'dim' }, 'Privater KI-Client im Browser: mehrere Anbieter, Chat mit Verlauf, Agenten mit Werkzeugen und Modellvergleich. Es gibt keinen eigenen Server – Chats und Schlüssel liegen nur auf diesem Gerät, Anfragen gehen direkt an den jeweiligen Anbieter.'),
+    h('div', { class: 'srow' }, h('div', { class: 'sl-l' }, 'App installieren', h('div', { class: 'dim sm' }, standalone ? 'Läuft bereits als installierte App.' : 'Funktioniert, wenn die Seite über https (z. B. GitHub Pages) geöffnet ist. Sonst im Chrome-Menü ⋮ → „App installieren“ bzw. „Zum Startbildschirm“.')), h('div', { class: 'sl-c' }, S.installEvt ? h('button', { class: 'btn primary', onclick: async () => { S.installEvt.prompt(); await S.installEvt.userChoice; S.installEvt = null; render(); } }, 'Installieren') : null)),
+    h('p', { class: 'dim sm' }, 'Sicherheitshinweis: API-Schlüssel liegen unverschlüsselt im Browser-Speicher dieses Geräts. Nutze die Seite nur auf eigenen Geräten und gib keine Schlüssel mit hohem Limit ein.'));
+}
+
+/* ===== Start ===== */
+async function init() {
+  try { await loadAll(); } catch (e) { document.body.innerHTML = '<p style="padding:2rem;font-family:sans-serif">Speicher (IndexedDB) nicht verfügbar: ' + esc(e.message) + '</p>'; return; }
+  applyAppearance();
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (S.settings.theme === 'auto') applyAppearance(); });
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-act]'); if (!b) return;
+    const code = b.closest('.code'); const text = code?.querySelector('code')?.textContent || '';
+    if (b.dataset.act === 'copycode') copyText(text);
+    else if (b.dataset.act === 'preview') openModal({ title: 'Vorschau', wide: true, body: h('iframe', { class: 'preview-frame', sandbox: 'allow-scripts', srcdoc: /^\s*<svg/i.test(text) ? '<body style="margin:0">' + text + '</body>' : text }) });
+  });
+  document.addEventListener('focusin', e => { if (e.target.matches?.('.cbox textarea') && matchMedia('(max-width:820px)').matches) document.body.classList.add('kb'); });
+  document.addEventListener('focusout', e => { if (e.target.matches?.('.cbox textarea')) document.body.classList.remove('kb'); });
+  window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); S.installEvt = e; if (S.view === 'settings' && S.tab === 'about') render(); });
+  const first = S.chats.find(c => c.messages.length);
+  if (first) S.chatId = first.id;
+  render();
+  navigator.storage?.persist?.();
+  if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+init();
+
+</script>
+</body>
+</html>
