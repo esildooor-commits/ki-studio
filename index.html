@@ -617,11 +617,16 @@ async function sseRead(res, onData) {
   if (buf.trim()) handle(buf);
 }
 
-const attText = m => {
+// native=true: Anbieter liest PDFs selbst (Anthropic/Gemini) – dann nicht zusätzlich den extrahierten Text mitschicken
+const attText = (m, native) => {
   let t = m.content || '';
-  for (const a of m.attachments || []) if (a.type === 'text') t += `\n\n[Datei: ${a.name}]\n${a.text}`;
+  for (const a of m.attachments || []) {
+    if (a.type === 'text') t += `\n\n[Datei: ${a.name}]\n${a.text}`;
+    else if (a.type === 'pdf' && !(native && a.data)) t += `\n\n[PDF: ${a.name}]\n${a.text || '(Kein Text im PDF lesbar – vermutlich ein Scan. Bitte ein Modell mit PDF-Unterstützung wählen, z. B. Claude oder Gemini.)'}`;
+  }
   return t;
 };
+const pdfs = m => (m.attachments || []).filter(a => a.type === 'pdf' && a.data);
 const imgs = m => (m.attachments || []).filter(a => a.type === 'image');
 const splitDataUrl = u => { const r = /^data:([^;]+);base64,(.*)$/.exec(u || ''); return r ? { mime: r[1], data: r[2] } : null; };
 
@@ -704,7 +709,8 @@ function toAnthropic(msgs) {
     if (m.role === 'user') {
       const c = [];
       for (const a of imgs(m)) { const d = splitDataUrl(a.dataUrl); if (d) c.push({ type: 'image', source: { type: 'base64', media_type: d.mime, data: d.data } }); }
-      c.push({ type: 'text', text: attText(m) || '(leer)' });
+      for (const a of pdfs(m)) c.push({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: a.data }, title: a.name });
+      c.push({ type: 'text', text: attText(m, true) || '(leer)' });
       push('user', c);
     } else if (m.role === 'assistant') {
       const c = [];
@@ -750,8 +756,9 @@ function toGemini(msgs) {
   const push = (role, parts) => { const l = out[out.length - 1]; if (l && l.role === role) l.parts.push(...parts); else out.push({ role, parts }); };
   for (const m of msgs) {
     if (m.role === 'user') {
-      const parts = [{ text: attText(m) || ' ' }];
+      const parts = [{ text: attText(m, true) || ' ' }];
       for (const a of imgs(m)) { const d = splitDataUrl(a.dataUrl); if (d) parts.push({ inlineData: { mimeType: d.mime, data: d.data } }); }
+      for (const a of pdfs(m)) parts.push({ inlineData: { mimeType: 'application/pdf', data: a.data } });
       push('user', parts);
     } else if (m.role === 'assistant') {
       const parts = [];
@@ -1253,10 +1260,48 @@ function shrinkImage(file, max = 1600) {
     img.src = url;
   });
 }
+const b64OfBuffer = buf => { const u = new Uint8Array(buf); let b = ''; for (let i = 0; i < u.length; i += 0x8000) b += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(b); };
+let pdfjsReady = null;
+function loadPdfjs() {
+  if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+  return pdfjsReady || (pdfjsReady = new Promise((res, rej) => {
+    const sc = document.createElement('script'); sc.src = './lib/pdf.min.js';
+    sc.onload = () => { pdfjsLib.GlobalWorkerOptions.workerSrc = './lib/pdf.worker.min.js'; res(pdfjsLib); };
+    sc.onerror = () => { pdfjsReady = null; rej(new Error('pdf.js konnte nicht geladen werden')); };
+    document.head.append(sc);
+  }));
+}
+async function pdfToText(buf) {
+  const lib = await loadPdfjs();
+  const pdf = await lib.getDocument({ data: buf }).promise;
+  let out = '';
+  for (let n = 1; n <= pdf.numPages && out.length < 200000; n++) {
+    const tc = await (await pdf.getPage(n)).getTextContent();
+    let line = '', lastY = null, pg = '';
+    for (const it of tc.items) {
+      const y = it.transform ? it.transform[5] : 0;
+      if (lastY !== null && Math.abs(y - lastY) > 2) { pg += line.trimEnd() + '\n'; line = ''; }
+      line += it.str + (it.hasEOL ? '\n' : ' '); lastY = y;
+    }
+    pg += line.trimEnd();
+    out += (pdf.numPages > 1 ? `\n--- Seite ${n} ---\n` : '') + pg + '\n';
+  }
+  pdf.destroy && pdf.destroy();
+  if (out.length > 200000) out = out.slice(0, 200000) + '\n…[gekürzt]';
+  return out.trim();
+}
 async function addFiles(files) {
   for (const f of files) {
     try {
       if (f.type.startsWith('image/')) S.pending.push({ type: 'image', name: f.name, dataUrl: await shrinkImage(f) });
+      else if (f.type === 'application/pdf' || /\.pdf$/i.test(f.name)) {
+        if (f.size > 20e6) { toast('PDF zu groß (max. 20 MB): ' + f.name); continue; }
+        toast('PDF wird gelesen …');
+        const buf = await f.arrayBuffer();
+        let text = ''; try { text = await pdfToText(buf.slice(0)); } catch (e) { console.warn(e); }
+        S.pending.push({ type: 'pdf', name: f.name, text, data: b64OfBuffer(buf), size: f.size });
+        if (!text.trim()) toast('Kein Text im PDF gefunden (Scan?). Nur Claude/Gemini können es direkt lesen.');
+      }
       else if (f.size < 2e6 && (f.type.startsWith('text/') || f.type === 'application/json' || /\.(txt|md|csv|json|js|ts|py|html|css|xml|yml|yaml|ini|log|sql|sh|c|cpp|h|java|cs|go|rs|php|tex)$/i.test(f.name))) {
         let t = await f.text(); if (t.length > 200000) t = t.slice(0, 200000) + '\n…[gekürzt]';
         S.pending.push({ type: 'text', name: f.name, text: t });
@@ -1340,7 +1385,7 @@ function buildComposer(chat) {
     }
   });
   ta.addEventListener('paste', e => { const fs = [...(e.clipboardData?.files || [])]; if (fs.length) { e.preventDefault(); addFiles(fs); } });
-  const file = h('input', { type: 'file', multiple: true, hidden: true, accept: 'image/*,text/*,.md,.csv,.json,.js,.py,.html,.css,.xml,.yml,.yaml,.log,.sql,.sh', onchange: e => { addFiles([...e.target.files]); e.target.value = ''; } });
+  const file = h('input', { type: 'file', multiple: true, hidden: true, accept: 'image/*,application/pdf,.pdf,text/*,.md,.csv,.json,.js,.py,.html,.css,.xml,.yml,.yaml,.log,.sql,.sh', onchange: e => { addFiles([...e.target.files]); e.target.value = ''; } });
   UI.pend = h('div', { class: 'pend' });
   UI.sendBtn = h('button', { class: 'send', onclick: () => { const c = S.running.get(chat.id); if (c) c.abort(); else doSend(); } });
   const box = h('div', { class: 'cbox' }, UI.pend, ta, h('div', { class: 'ctools' },
