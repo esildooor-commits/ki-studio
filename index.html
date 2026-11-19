@@ -669,7 +669,7 @@ async function callOpenAI(o) {
   }
 }
 // Cache-Treffer je nach Anbieter: OpenAI & Co. (prompt_tokens_details.cached_tokens), DeepSeek (prompt_cache_hit_tokens)
-const oaUsage = u => ({ in: u.prompt_tokens, out: u.completion_tokens, cache: u.prompt_tokens_details?.cached_tokens ?? u.prompt_cache_hit_tokens ?? u.cached_tokens ?? 0 });
+const oaUsage = u => ({ in: u.prompt_tokens, out: u.completion_tokens, cache: u.prompt_tokens_details?.cached_tokens ?? u.prompt_cache_hit_tokens ?? u.cached_tokens ?? u.cache_read_input_tokens });
 async function readOpenAI(res, o) {
   let text = '', reasoning = '', usage = null, finish = null;
   const tcs = [];
@@ -801,7 +801,7 @@ async function callGemini(o) {
       else if (part.text) { if (part.thought) { reasoning += part.text; o.onReasoning(part.text); } else { text += part.text; o.onText(part.text); } }
     }
     if (c?.finishReason) finish = c.finishReason;
-    if (j.usageMetadata) usage = { in: j.usageMetadata.promptTokenCount, out: j.usageMetadata.candidatesTokenCount, cache: j.usageMetadata.cachedContentTokenCount || 0 };
+    if (j.usageMetadata) usage = { in: j.usageMetadata.promptTokenCount, out: j.usageMetadata.candidatesTokenCount, cache: j.usageMetadata.cachedContentTokenCount ?? 0 };
   });
   return { text, reasoning, toolCalls, usage, finish };
 }
@@ -1444,8 +1444,8 @@ function aiTurn(chat, t, isLast, running) {
   const toolMsgs = Object.fromEntries(t.msgs.filter(m => m.role === 'tool').map(m => [m.toolCallId, m]));
   const live = running && isLast;
   const parts = ams.map(m => aiPart(m, toolMsgs, live && m === last));
-  const tokens = ams.reduce((s, m) => s + (m.usage ? (m.usage.in || 0) + (m.usage.out || 0) : 0), 0), cached = ams.reduce((s, m) => s + (m.usage?.cache || 0), 0), inTok = ams.reduce((s, m) => s + (m.usage?.in || 0), 0), ms = ams.reduce((s, m) => s + (m.ms || 0), 0);
-  const meta = [ref ? provName(ref.p) : null, last ? fmtTime(last.ts) : null, tokens ? tokens + ' Tokens' + (cached && inTok ? ' · ' + Math.min(100, Math.round(cached / inTok * 100)) + ' % Cache' : '') : null, ms && !live ? (ms / 1000).toFixed(1) + ' s' : null].filter(Boolean).join(' · ');
+  const tokens = ams.reduce((s, m) => s + (m.usage ? (m.usage.in || 0) + (m.usage.out || 0) : 0), 0), cached = ams.reduce((s, m) => s + (m.usage?.cache || 0), 0), hasCache = ams.some(m => m.usage && m.usage.cache != null), inTok = ams.reduce((s, m) => s + (m.usage?.in || 0), 0), ms = ams.reduce((s, m) => s + (m.ms || 0), 0);
+  const meta = [ref ? provName(ref.p) : null, last ? fmtTime(last.ts) : null, tokens ? tokens + ' Tokens' + (hasCache && inTok ? ' · ' + Math.min(100, Math.round(cached / inTok * 100)) + ' % Cache' : '') : null, ms && !live ? (ms / 1000).toFixed(1) + ' s' : null].filter(Boolean).join(' · ');
   const acts = live ? null : h('div', { class: 'acts' },
     actBtn('copy', 'Kopieren', () => copyText(ams.map(m => m.content).filter(Boolean).join('\n\n'))),
     isLast ? actBtn('refresh', 'Neu generieren', () => regenerate(chat)) : null,
@@ -1493,7 +1493,7 @@ function drawCompare() {
   C.results.forEach((r, i) => grid.append(h('div', { class: 'col' },
     h('div', { class: 'col-h' }, h('b', null, r.ref.m), h('span', { class: 'dim sm' }, provName(r.ref.p))),
     h('div', { class: 'col-b' }, r.reasoning ? h('details', { class: 'think' }, h('summary', null, 'Denkprozess'), h('div', { class: 'think-body' }, r.reasoning)) : null, h('div', { class: 'txt', 'data-cmp': i, html: md(r.text) }), r.error ? h('div', { class: 'err' }, r.error) : null),
-    h('div', { class: 'col-f' }, h('span', null, r.status === 'run' ? '⏳ läuft …' : [(r.ms / 1000).toFixed(1) + ' s', r.usage ? ' · ' + (r.usage.in || 0) + '→' + (r.usage.out || 0) + ' Tokens' + (r.usage.cache && r.usage.in ? ' · ' + Math.min(100, Math.round(r.usage.cache / r.usage.in * 100)) + ' % Cache' : '') : ''].join('')),
+    h('div', { class: 'col-f' }, h('span', null, r.status === 'run' ? '⏳ läuft …' : [(r.ms / 1000).toFixed(1) + ' s', r.usage ? ' · ' + (r.usage.in || 0) + '→' + (r.usage.out || 0) + ' Tokens' + (r.usage.cache != null && r.usage.in ? ' · ' + Math.min(100, Math.round(r.usage.cache / r.usage.in * 100)) + ' % Cache' : '') : ''].join('')),
       h('span', null, h('button', { class: 'ib sm', title: 'Kopieren', onclick: () => copyText(r.text) }, ic('copy', 15)), h('button', { class: 'btn sm', onclick: () => cmpToChat(r) }, 'Als Chat'))))));
 }
 async function runCompare() {

@@ -1,5 +1,5 @@
 // Service Worker: App-Dateien offline verfügbar machen. API-Anfragen (fremde Server) werden nie angefasst.
-const CACHE = 'ki-studio-v5';
+const CACHE = 'ki-studio-v6';
 const ASSETS = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
