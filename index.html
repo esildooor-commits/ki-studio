@@ -352,7 +352,7 @@ const PRESET_AGENTS = [
 const DEFAULT_SETTINGS = {
   theme: 'auto', accent: '#00b96b', uiFont: 16, chatFont: 16, codeFont: 13, lineHeight: 1.6,
   fontFamily: 'system', customFont: '', fontFileName: '', contentWidth: 'normal', msgStyle: 'list',
-  defaultModel: null, sendKey: null, maxSteps: 8, dateInPrompt: true, thinkOpen: false,
+  defaultModel: null, sendKey: null, maxSteps: 8, dateInPrompt: true, thinkOpen: false, claudeCache: true,
   confirm: { run_js: true },
   search: { provider: 'tavily', tavilyKey: '', jinaKey: '', searxUrl: '' },
   proxy: 'https://r.jina.ai/{url}',
@@ -668,6 +668,8 @@ async function callOpenAI(o) {
     return readOpenAI(res, o);
   }
 }
+// Cache-Treffer je nach Anbieter: OpenAI & Co. (prompt_tokens_details.cached_tokens), DeepSeek (prompt_cache_hit_tokens)
+const oaUsage = u => ({ in: u.prompt_tokens, out: u.completion_tokens, cache: u.prompt_tokens_details?.cached_tokens ?? u.prompt_cache_hit_tokens ?? u.cached_tokens ?? 0 });
 async function readOpenAI(res, o) {
   let text = '', reasoning = '', usage = null, finish = null;
   const tcs = [];
@@ -676,14 +678,14 @@ async function readOpenAI(res, o) {
     text = msg.content || ''; if (text) o.onText(text);
     reasoning = msg.reasoning_content || ''; if (reasoning) o.onReasoning(reasoning);
     const toolCalls = (msg.tool_calls || []).map(t => ({ id: t.id || 'call_' + uid(), name: t.function?.name, args: safeJSON(t.function?.arguments) }));
-    if (j.usage) usage = { in: j.usage.prompt_tokens, out: j.usage.completion_tokens };
+    if (j.usage) usage = oaUsage(j.usage);
     return { text, reasoning, toolCalls, usage, finish: j.choices?.[0]?.finish_reason };
   }
   await sseRead(res, (ev, d) => {
     if (d === '[DONE]') return;
     let j; try { j = JSON.parse(d); } catch { return; }
     if (j.error) throw new ApiError(0, JSON.stringify({ error: j.error }));
-    if (j.usage) usage = { in: j.usage.prompt_tokens, out: j.usage.completion_tokens };
+    if (j.usage) usage = oaUsage(j.usage);
     const c = j.choices?.[0]; if (!c) return;
     const dl = c.delta || {};
     if (dl.content) { text += dl.content; o.onText(dl.content); }
@@ -729,12 +731,20 @@ async function callAnthropic(o) {
   if (o.system) body.system = o.system;
   if (o.temperature != null) body.temperature = o.temperature;
   if (o.tools?.length) body.tools = o.tools.map(t => ({ name: t.name, description: t.description, input_schema: t.parameters }));
+  if (S.settings.claudeCache !== false) {
+    // Prompt-Caching: Systemprompt, Werkzeuge und Chatverlauf (bis zur letzten Nachricht) werden zwischengespeichert (max. 4 Markierungen)
+    const cc = { type: 'ephemeral' };
+    if (o.system) body.system = [{ type: 'text', text: o.system, cache_control: cc }];
+    if (body.tools?.length) body.tools[body.tools.length - 1].cache_control = cc;
+    const lm = body.messages[body.messages.length - 1], lb = lm?.content?.[lm.content.length - 1];
+    if (lb) lb.cache_control = cc;
+  }
   const res = await fetch(url, { method: 'POST', signal: o.signal, body: JSON.stringify(body), headers: { 'Content-Type': 'application/json', 'x-api-key': p.apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' } });
   if (!res.ok) throw new ApiError(res.status, await res.text().catch(() => ''));
-  let text = '', reasoning = '', finish = null; const usage = { in: 0, out: 0 }; const blocks = {};
+  let text = '', reasoning = '', finish = null; const usage = { in: 0, out: 0, cache: 0 }; const blocks = {};
   await sseRead(res, (ev, d) => {
     let j; try { j = JSON.parse(d); } catch { return; }
-    if (j.type === 'message_start') usage.in = j.message?.usage?.input_tokens || 0;
+    if (j.type === 'message_start') { const u = j.message?.usage || {}; usage.cache = u.cache_read_input_tokens || 0; usage.cacheWrite = u.cache_creation_input_tokens || 0; usage.in = (u.input_tokens || 0) + usage.cache + usage.cacheWrite; }
     else if (j.type === 'content_block_start') blocks[j.index] = { type: j.content_block.type, id: j.content_block.id, name: j.content_block.name, json: '' };
     else if (j.type === 'content_block_delta') {
       const dl = j.delta, b = blocks[j.index];
@@ -791,7 +801,7 @@ async function callGemini(o) {
       else if (part.text) { if (part.thought) { reasoning += part.text; o.onReasoning(part.text); } else { text += part.text; o.onText(part.text); } }
     }
     if (c?.finishReason) finish = c.finishReason;
-    if (j.usageMetadata) usage = { in: j.usageMetadata.promptTokenCount, out: j.usageMetadata.candidatesTokenCount };
+    if (j.usageMetadata) usage = { in: j.usageMetadata.promptTokenCount, out: j.usageMetadata.candidatesTokenCount, cache: j.usageMetadata.cachedContentTokenCount || 0 };
   });
   return { text, reasoning, toolCalls, usage, finish };
 }
@@ -1106,7 +1116,7 @@ function ensureReady(chat) {
 /* ===== Chat-Engine ===== */
 function buildSystem(agent) {
   let s = agent.prompt || '';
-  if (S.settings.dateInPrompt) s += `\n\nAktuelles Datum und Uhrzeit: ${new Date().toLocaleString('de-DE', { dateStyle: 'full', timeStyle: 'short' })}.`;
+  if (S.settings.dateInPrompt) s += `\n\nAktuelles Datum: ${new Date().toLocaleDateString('de-DE', { dateStyle: 'full' })}. (Nur das Datum, damit der Cache gültig bleibt – die genaue Uhrzeit liefert das Werkzeug get_datetime.)`;
   return s.trim();
 }
 const agentTools = a => (a.tools || []).filter(n => TOOLS[n]).map(n => ({ name: n, description: TOOLS[n].description, parameters: TOOLS[n].parameters }));
@@ -1434,8 +1444,8 @@ function aiTurn(chat, t, isLast, running) {
   const toolMsgs = Object.fromEntries(t.msgs.filter(m => m.role === 'tool').map(m => [m.toolCallId, m]));
   const live = running && isLast;
   const parts = ams.map(m => aiPart(m, toolMsgs, live && m === last));
-  const tokens = ams.reduce((s, m) => s + (m.usage ? (m.usage.in || 0) + (m.usage.out || 0) : 0), 0), ms = ams.reduce((s, m) => s + (m.ms || 0), 0);
-  const meta = [ref ? provName(ref.p) : null, last ? fmtTime(last.ts) : null, tokens ? tokens + ' Tokens' : null, ms && !live ? (ms / 1000).toFixed(1) + ' s' : null].filter(Boolean).join(' · ');
+  const tokens = ams.reduce((s, m) => s + (m.usage ? (m.usage.in || 0) + (m.usage.out || 0) : 0), 0), cached = ams.reduce((s, m) => s + (m.usage?.cache || 0), 0), ms = ams.reduce((s, m) => s + (m.ms || 0), 0);
+  const meta = [ref ? provName(ref.p) : null, last ? fmtTime(last.ts) : null, tokens ? tokens + ' Tokens' + (cached ? ' (' + cached + ' aus Cache)' : '') : null, ms && !live ? (ms / 1000).toFixed(1) + ' s' : null].filter(Boolean).join(' · ');
   const acts = live ? null : h('div', { class: 'acts' },
     actBtn('copy', 'Kopieren', () => copyText(ams.map(m => m.content).filter(Boolean).join('\n\n'))),
     isLast ? actBtn('refresh', 'Neu generieren', () => regenerate(chat)) : null,
@@ -1483,7 +1493,7 @@ function drawCompare() {
   C.results.forEach((r, i) => grid.append(h('div', { class: 'col' },
     h('div', { class: 'col-h' }, h('b', null, r.ref.m), h('span', { class: 'dim sm' }, provName(r.ref.p))),
     h('div', { class: 'col-b' }, r.reasoning ? h('details', { class: 'think' }, h('summary', null, 'Denkprozess'), h('div', { class: 'think-body' }, r.reasoning)) : null, h('div', { class: 'txt', 'data-cmp': i, html: md(r.text) }), r.error ? h('div', { class: 'err' }, r.error) : null),
-    h('div', { class: 'col-f' }, h('span', null, r.status === 'run' ? '⏳ läuft …' : [(r.ms / 1000).toFixed(1) + ' s', r.usage ? ' · ' + (r.usage.in || 0) + '→' + (r.usage.out || 0) + ' Tokens' : ''].join('')),
+    h('div', { class: 'col-f' }, h('span', null, r.status === 'run' ? '⏳ läuft …' : [(r.ms / 1000).toFixed(1) + ' s', r.usage ? ' · ' + (r.usage.in || 0) + '→' + (r.usage.out || 0) + ' Tokens' + (r.usage.cache ? ' (' + r.usage.cache + ' aus Cache)' : '') : ''].join('')),
       h('span', null, h('button', { class: 'ib sm', title: 'Kopieren', onclick: () => copyText(r.text) }, ic('copy', 15)), h('button', { class: 'btn sm', onclick: () => cmpToChat(r) }, 'Als Chat'))))));
 }
 async function runCompare() {
@@ -1668,6 +1678,7 @@ function settingsChat() {
     srow('Senden mit', select([['enter', 'Enter (Umschalt+Enter = Zeilenumbruch)'], ['ctrl', 'Strg+Enter'], ['button', 'Nur Senden-Taste']], st.sendKey, v => { st.sendKey = v; save(); })),
     srow('Max. Werkzeug-Schritte pro Antwort', h('input', { class: 'inp', type: 'number', min: 1, max: 25, value: st.maxSteps, style: { width: '6rem' }, oninput: e => { st.maxSteps = Math.max(1, Math.min(25, +e.target.value || 8)); save(); } }), 'Schutz vor Endlosschleifen der Agenten.'),
     srow('Datum im Systemprompt', sw(st.dateInPrompt, v => { st.dateInPrompt = v; save(); }), 'Das Modell kennt dann das heutige Datum.'),
+    srow('Claude: Prompt-Caching', sw(st.claudeCache !== false, v => { st.claudeCache = v; save(); }), 'Spart bei langen Chats und PDFs Kosten: Systemprompt, Werkzeuge und Verlauf werden bei Anthropic zwischengespeichert (gilt ca. 5 Minuten). Andere Anbieter cachen automatisch.'),
     srow('Denkprozess immer aufgeklappt', sw(st.thinkOpen, v => { st.thinkOpen = v; save(); }), 'Für Modelle, die ihre Überlegungen mitsenden (z. B. deepseek-reasoner).'));
 }
 function settingsTools() {
